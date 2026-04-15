@@ -54,6 +54,14 @@ SP630E 5 kanallı RGBWW LED kontrol cihazı için gelişmiş web uygulaması. Me
 - [x] Tüm bileşenlerde SP630E gerçek protokol kullanımı (setRGBWW komutu)
 - [x] %100 test geçişi (backend + frontend + PWA, iteration 3)
 
+### Phase 4: Anlık Slider Kontrolü + iOS Native Hazırlık (April 15, 2026)
+- [x] "KOMUTU GÖNDER" butonu kaldırıldı - slider'lar anlık komut gönderiyor (150ms debounce)
+- [x] Capacitor 6 + @capacitor-community/bluetooth-le entegrasyonu
+- [x] Birleşik BLE katmanı (Web Bluetooth + Capacitor BLE aynı kodla)
+- [x] capacitor.config.ts ve iOS build rehberi (IOS_BUILD_GUIDE.md)
+- [x] Platform algılama (iOS native / Web Bluetooth / Bluefy)
+- [x] %100 test geçişi (iteration 4)
+
 ## Prioritized Backlog
 ### P0 (Critical)
 - SP630E gerçek Bluetooth UUID'lerini keşfetme (reverse engineering)

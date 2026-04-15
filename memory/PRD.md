@@ -62,6 +62,25 @@ SP630E 5 kanallı RGBWW LED kontrol cihazı için gelişmiş web uygulaması. Me
 - [x] Platform algılama (iOS native / Web Bluetooth / Bluefy)
 - [x] %100 test geçişi (iteration 4)
 
+### Phase 5: Akvaryum Gün Simülasyonu + Gelişmiş Zamanlayıcı (April 15, 2026)
+- [x] Akvaryum gün simülasyonu paneli (Fish ikonu)
+  - 6 faz: Gün Doğumu, Sabah, Öğle, Öğleden Sonra, Gün Batımı, Gece
+  - Her faz için 5 kanal renk düzenleme (R,G,B,WW,CW)
+  - Özelleştirilebilir geçiş süresi (15-120 dk)
+  - Pik parlaklık ayarı (%10-100)
+  - Gün ilerleme çubuğu
+  - Renk interpolasyonu ile doğal geçişler
+- [x] Ay ışığı modu (açılıp kapanabilir)
+  - Mavi ve Soğuk Beyaz kanal ayarları
+  - Gece boyunca hafif aydınlatma
+- [x] Geliştirilmiş zamanlayıcı
+  - Açılma/kapanma saati (ayrı)
+  - LED renk seçimi (5 kanal slider)
+  - Gerçek zamanlı BLE komut gönderimi
+  - Dakikalık kontrol döngüsü
+- [x] Profil localStorage'da kalıcı
+- [x] %100 test geçişi (iteration 5)
+
 ## Prioritized Backlog
 ### P0 (Critical)
 - SP630E gerçek Bluetooth UUID'lerini keşfetme (reverse engineering)

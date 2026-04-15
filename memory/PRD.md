@@ -33,6 +33,18 @@ SP630E 5 kanallı RGBWW LED kontrol cihazı için gelişmiş web uygulaması. Me
 - [x] Mobil uyumlu dark theme UI
 - [x] %100 test geçişi (backend + frontend)
 
+### Phase 2: Gerçek SP630E Protokol Entegrasyonu (April 15, 2026)
+- [x] Gerçek BLE UUID'ler entegre edildi (Service: 0000ffe0, Write: 0000ffe1)
+- [x] SP630E komut formatı: 0x53 [CMD] 0x00 0x01 0x00 [LEN] [DATA]
+- [x] RGBWW komut seti: Power, Brightness, RGB Color, CCT, Mode/Effect, Speed
+- [x] 12 PWM dinamik efekt (7 renk atlama, nefes, stroboskop, gradyan, tekli nefesler)
+- [x] Coexistence modu (RGB + White aynı anda kontrol)
+- [x] Eski protokol desteği (A0 xx xx xx formatı) alternatif olarak
+- [x] Efekt hız kontrolü slider (1-10)
+- [x] Bildirim dinleme altyapısı
+- [x] Ayarlar panelinde BLE protokol UUID ve komut formatı gösterimi
+- [x] %100 test geçişi (backend + frontend, iteration 2)
+
 ## Prioritized Backlog
 ### P0 (Critical)
 - SP630E gerçek Bluetooth UUID'lerini keşfetme (reverse engineering)

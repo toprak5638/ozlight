@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Bluetooth, Loader2 } from 'lucide-react';
+import { Bluetooth, Loader2, Wifi } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
+import { SP630E_CONFIG, SP630E_COMMANDS } from '../lib/sp630e-protocol';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -12,59 +13,112 @@ const ConnectionPanel = ({ onConnect, onDemoMode }) => {
 
   const startScan = async () => {
     if (!navigator.bluetooth) {
-      toast.error('Web Bluetooth bu tarayıcıda desteklenmiyor!');
+      toast.error('Web Bluetooth bu tarayıcıda desteklenmiyor! Chrome veya Edge kullanın.');
       return;
     }
 
     setIsScanning(true);
 
     try {
-      toast.info('Bluetooth cihazları aranıyor...');
+      toast.info('SP630E cihazı aranıyor...');
 
       const device = await navigator.bluetooth.requestDevice({
         filters: [
-          { services: ['0000ffe0-0000-1000-8000-00805f9b34fb'] },
+          { services: [SP630E_CONFIG.SERVICE_UUID] },
+          { namePrefix: 'SP' },
           { namePrefix: 'LED' },
-          { namePrefix: 'BLE' },
-          { namePrefix: 'SP' }
+          { namePrefix: 'BLE' }
         ],
-        optionalServices: ['0000ffe0-0000-1000-8000-00805f9b34fb']
+        optionalServices: [
+          SP630E_CONFIG.SERVICE_UUID,
+          SP630E_CONFIG.VENDOR_SERVICE_UUID
+        ]
       });
 
-      toast.info(`${device.name || 'Cihaz'} bağlanıyor...`);
+      toast.info(`${device.name || 'SP630E'} bağlanıyor...`);
 
       const gattServer = await device.gatt.connect();
-      const service = await gattServer.getPrimaryService('0000ffe0-0000-1000-8000-00805f9b34fb');
-      const characteristic = await service.getCharacteristic('0000ffe1-0000-1000-8000-00805f9b34fb');
+      
+      let service, characteristic;
+      
+      // Önce ana servis UUID'i dene
+      try {
+        service = await gattServer.getPrimaryService(SP630E_CONFIG.SERVICE_UUID);
+        characteristic = await service.getCharacteristic(SP630E_CONFIG.WRITE_CHAR_UUID);
+        toast.info('Ana BLE servisi bulundu');
+      } catch (e) {
+        // Ana servis bulunamazsa, vendor servisini dene
+        try {
+          service = await gattServer.getPrimaryService(SP630E_CONFIG.VENDOR_SERVICE_UUID);
+          characteristic = await service.getCharacteristic(SP630E_CONFIG.VENDOR_WRITE_UUID);
+          toast.info('Vendor BLE servisi bulundu');
+        } catch (e2) {
+          throw new Error('Cihaz servisleri bulunamadı. Doğru cihazı seçtiğinizden emin olun.');
+        }
+      }
 
-      // Backend'e cihazı kaydet
+      // Bildirim alıcısını ayarla (varsa)
+      try {
+        const chars = await service.getCharacteristics();
+        for (const char of chars) {
+          const props = char.properties;
+          if (props.notify || props.indicate) {
+            await char.startNotifications();
+            char.addEventListener('characteristicvaluechanged', (event) => {
+              const data = new Uint8Array(event.target.value.buffer);
+              console.log('SP630E Bildirim:', Array.from(data).map(b => b.toString(16).padStart(2, '0')).join(' '));
+            });
+            toast.info('Bildirimler aktif');
+          }
+        }
+      } catch (e) {
+        console.warn('Bildirim kurulumu başarısız (önemli değil):', e);
+      }
+
+      // Durum sorgula
+      try {
+        const queryCmd = SP630E_COMMANDS.queryState();
+        await characteristic.writeValueWithoutResponse(queryCmd);
+      } catch (e) {
+        console.warn('Durum sorgusu başarısız:', e);
+      }
+
+      // Backend'e kaydet
       try {
         await axios.post(`${API}/devices/register`, {
           device_id: device.id,
-          device_name: device.name || 'Bilinmeyen Cihaz',
+          device_name: device.name || 'SP630E',
           device_type: 'sp630e',
-          service_uuid: '0000ffe0-0000-1000-8000-00805f9b34fb',
-          characteristic_uuid: '0000ffe1-0000-1000-8000-00805f9b34fb',
+          service_uuid: SP630E_CONFIG.SERVICE_UUID,
+          characteristic_uuid: SP630E_CONFIG.WRITE_CHAR_UUID,
           is_connected: true
         });
-
-        await axios.put(`${API}/devices/${device.id}/connection`, null, {
-          params: { is_connected: true }
-        });
       } catch (error) {
-        console.warn('Backend kayıt hatası (önemli değil):', error);
+        // 409 = zaten kayıtlı, sorun değil
+        if (error.response?.status !== 409) {
+          console.warn('Backend kayıt hatası:', error);
+        }
+        try {
+          await axios.put(`${API}/devices/${device.id}/connection`, null, {
+            params: { is_connected: true }
+          });
+        } catch (e) {
+          console.warn('Bağlantı durumu güncelleme hatası:', e);
+        }
       }
 
       device.addEventListener('gattserverdisconnected', () => {
-        toast.error('Cihaz bağlantısı kesildi!');
+        toast.error('SP630E bağlantısı kesildi!');
         onConnect(null, null);
       });
 
-      toast.success(`${device.name || 'Cihaz'} başarıyla bağlandı!`);
+      toast.success(`${device.name || 'SP630E'} başarıyla bağlandı!`);
       onConnect(device, characteristic);
     } catch (error) {
       if (error.name === 'NotFoundError') {
-        toast.error('Hiç cihaz bulunamadı. Cihazınızın açık olduğundan emin olun.');
+        toast.error('Cihaz bulunamadı. SP630E açık ve menzilde olmalı.');
+      } else if (error.name === 'SecurityError') {
+        toast.error('Bluetooth izni reddedildi. HTTPS gereklidir.');
       } else {
         toast.error(`Bağlantı hatası: ${error.message}`);
       }
@@ -82,7 +136,7 @@ const ConnectionPanel = ({ onConnect, onDemoMode }) => {
         
         <div>
           <h2 className="text-2xl font-bold mb-2" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>
-            CIHAZ BAĞLANTISI
+            CİHAZ BAĞLANTISI
           </h2>
           <p className="text-sm text-[#A1A1AA]">
             SP630E LED kontrolcünüzü bağlamak için aşağıdaki butona tıklayın
@@ -109,11 +163,15 @@ const ConnectionPanel = ({ onConnect, onDemoMode }) => {
         </Button>
 
         <div className="pt-4 border-t border-white/10">
-          <p className="text-xs text-[#52525B] mb-2">Desteklenen Cihazlar</p>
-          <div className="flex flex-wrap gap-2 justify-center">
+          <p className="text-xs text-[#52525B] mb-3">Protokol Bilgisi</p>
+          <div className="bg-white/5 rounded-lg p-3 text-left">
+            <p className="text-xs font-mono text-[#A1A1AA] mb-1">Service: <span className="text-[#007AFF]">0000ffe0-...-00805f9b34fb</span></p>
+            <p className="text-xs font-mono text-[#A1A1AA]">Write: <span className="text-[#007AFF]">0000ffe1-...-00805f9b34fb</span></p>
+          </div>
+          <div className="flex flex-wrap gap-2 justify-center mt-3">
             <span className="px-3 py-1 bg-white/5 rounded-full text-xs font-mono">SP630E</span>
-            <span className="px-3 py-1 bg-white/5 rounded-full text-xs font-mono">RGBWW LED</span>
-            <span className="px-3 py-1 bg-white/5 rounded-full text-xs font-mono">BLE 5.0</span>
+            <span className="px-3 py-1 bg-white/5 rounded-full text-xs font-mono">RGBCCT</span>
+            <span className="px-3 py-1 bg-white/5 rounded-full text-xs font-mono">5CH PWM</span>
           </div>
         </div>
 

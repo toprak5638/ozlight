@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Send, Power, PowerOff } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
+import { SP630E_COMMANDS } from '../lib/sp630e-protocol';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -22,49 +23,73 @@ const ControlPanel = ({ channels, setChannels, characteristic, device }) => {
   };
 
   const sendCommand = async () => {
-    if (!characteristic) {
-      toast.error('Cihaz bağlı değil!');
-      return;
-    }
-
     try {
-      const commandBytes = new Uint8Array([
-        channels.red,
-        channels.green,
-        channels.blue,
-        channels.warmWhite,
-        channels.coolWhite
-      ]);
+      if (characteristic) {
+        // Gerçek SP630E protokolü kullan
+        const result = SP630E_COMMANDS.setRGBWW(
+          channels.red,
+          channels.green,
+          channels.blue,
+          channels.warmWhite,
+          channels.coolWhite
+        );
 
-      await characteristic.writeValueWithoutResponse(commandBytes);
+        // Tüm komutları sırayla gönder
+        for (const cmd of result.commands) {
+          await characteristic.writeValueWithoutResponse(cmd);
+          // Komutlar arası küçük gecikme
+          await new Promise(resolve => setTimeout(resolve, 50));
+        }
 
+        toast.success(`Komut gönderildi: ${result.description}`);
+      } else {
+        toast.info('Demo modu: Komut simüle edildi');
+      }
+
+      // Backend'e log kaydet
       try {
-        await axios.post(`${API}/commands/send`, {
-          device_id: device.id,
-          color: {
-            red: channels.red,
-            green: channels.green,
-            blue: channels.blue,
-            warm_white: channels.warmWhite,
-            cool_white: channels.coolWhite
-          }
-        });
+        if (device) {
+          await axios.post(`${API}/commands/send`, {
+            device_id: device.id,
+            color: {
+              red: channels.red,
+              green: channels.green,
+              blue: channels.blue,
+              warm_white: channels.warmWhite,
+              cool_white: channels.coolWhite
+            }
+          });
+        }
       } catch (error) {
         console.warn('Backend log hatası:', error);
       }
-
-      toast.success('Komut gönderildi!');
     } catch (error) {
       toast.error(`Komut gönderilemedi: ${error.message}`);
     }
   };
 
-  const allOn = () => {
+  const powerOn = async () => {
     setChannels({ red: 100, green: 100, blue: 100, warmWhite: 100, coolWhite: 100 });
+    if (characteristic) {
+      try {
+        await characteristic.writeValueWithoutResponse(SP630E_COMMANDS.powerOn());
+        toast.success('Cihaz açıldı');
+      } catch (error) {
+        toast.error(`Açma hatası: ${error.message}`);
+      }
+    }
   };
 
-  const allOff = () => {
+  const powerOff = async () => {
     setChannels({ red: 0, green: 0, blue: 0, warmWhite: 0, coolWhite: 0 });
+    if (characteristic) {
+      try {
+        await characteristic.writeValueWithoutResponse(SP630E_COMMANDS.powerOff());
+        toast.success('Cihaz kapatıldı');
+      } catch (error) {
+        toast.error(`Kapatma hatası: ${error.message}`);
+      }
+    }
   };
 
   const getPreviewColor = () => {
@@ -105,7 +130,7 @@ const ControlPanel = ({ channels, setChannels, characteristic, device }) => {
       {/* Quick Actions */}
       <div className="grid grid-cols-2 gap-3">
         <Button
-          onClick={allOn}
+          onClick={powerOn}
           className="h-10 bg-white/5 hover:bg-white/10 text-white rounded-lg font-bold text-xs uppercase tracking-wider transition-all border border-white/10"
           data-testid="all-on-button"
         >
@@ -113,7 +138,7 @@ const ControlPanel = ({ channels, setChannels, characteristic, device }) => {
           HEPSİ AÇ
         </Button>
         <Button
-          onClick={allOff}
+          onClick={powerOff}
           className="h-10 bg-white/5 hover:bg-white/10 text-white rounded-lg font-bold text-xs uppercase tracking-wider transition-all border border-white/10"
           data-testid="all-off-button"
         >

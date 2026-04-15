@@ -145,25 +145,54 @@ const LEDController = () => {
             </TabsContent>
 
             <TabsContent value="settings" data-testid="settings-content">
-              <div className="bg-[#121212] border border-white/10 rounded-lg p-6">
-                <h3 className="text-xl font-bold mb-4" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>AYARLAR</h3>
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-sm text-[#A1A1AA] mb-1">Cihaz Adı</p>
-                    <p className="font-semibold" data-testid="device-name">{selectedDevice?.name || 'Bilinmeyen'}</p>
+              <div className="space-y-6">
+                <div className="bg-[#121212] border border-white/10 rounded-lg p-6">
+                  <h3 className="text-xl font-bold mb-4" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>CİHAZ BİLGİSİ</h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-[#A1A1AA]">Cihaz Adı</span>
+                      <span className="font-semibold" data-testid="device-name">{selectedDevice?.name || 'SP630E Demo'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-[#A1A1AA]">Cihaz ID</span>
+                      <span className="text-xs font-mono text-[#52525B]" data-testid="device-id">{selectedDevice?.id || 'demo-device'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-[#A1A1AA]">Tip</span>
+                      <span className="text-sm">5CH PWM RGBCCT</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-[#A1A1AA]">Bağlantı</span>
+                      <span className="text-sm text-[#00C781]">Bluetooth LE</span>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm text-[#A1A1AA] mb-1">Cihaz ID</p>
-                    <p className="text-xs font-mono text-[#52525B]" data-testid="device-id">{selectedDevice?.id || 'N/A'}</p>
-                  </div>
-                  <button
-                    onClick={handleDisconnect}
-                    className="w-full mt-4 px-4 py-3 bg-[#FF3B30] text-white rounded-lg font-bold uppercase tracking-wider hover:translate-y-[-1px] transition-transform border border-white/10"
-                    data-testid="disconnect-button"
-                  >
-                    Bağlantıyı Kes
-                  </button>
                 </div>
+
+                <div className="bg-[#121212] border border-white/10 rounded-lg p-6">
+                  <h3 className="text-xl font-bold mb-4" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>BLE PROTOKOL</h3>
+                  <div className="space-y-2 text-xs font-mono">
+                    <div className="bg-white/5 p-2 rounded">
+                      <span className="text-[#A1A1AA]">Service:</span>{' '}
+                      <span className="text-[#007AFF]">0000ffe0-0000-1000-8000-00805f9b34fb</span>
+                    </div>
+                    <div className="bg-white/5 p-2 rounded">
+                      <span className="text-[#A1A1AA]">Char:</span>{' '}
+                      <span className="text-[#007AFF]">0000ffe1-0000-1000-8000-00805f9b34fb</span>
+                    </div>
+                    <div className="bg-white/5 p-2 rounded">
+                      <span className="text-[#A1A1AA]">Format:</span>{' '}
+                      <span className="text-[#34C759]">0x53 [CMD] 0x00 0x01 0x00 [LEN] [DATA]</span>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleDisconnect}
+                  className="w-full px-4 py-3 bg-[#FF3B30] text-white rounded-lg font-bold uppercase tracking-wider hover:translate-y-[-1px] transition-transform border border-white/10"
+                  data-testid="disconnect-button"
+                >
+                  Bağlantıyı Kes
+                </button>
               </div>
             </TabsContent>
           </Tabs>

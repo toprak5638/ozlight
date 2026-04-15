@@ -1,148 +1,156 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
+import { Slider } from '@/components/ui/slider';
 import { Zap, Pause, Play } from 'lucide-react';
 import { toast } from 'sonner';
+import { SP630E_CONFIG, SP630E_COMMANDS } from '../lib/sp630e-protocol';
 
-const ANIMATIONS = {
-  fade: 'Yumuşak Geçiş',
-  pulse: 'Nabız',
-  rainbow: 'Gökkuşağı',
-  strobe: 'Stroboskop'
-};
+const PWM_EFFECTS = [
+  { id: 0x01, name: '7 Renk Atlama', icon: 'shuffle' },
+  { id: 0x02, name: '7 Renk Nefes', icon: 'wind' },
+  { id: 0x03, name: '7 Renk Stroboskop', icon: 'zap' },
+  { id: 0x04, name: '7 Renk Nabız', icon: 'heart' },
+  { id: 0x05, name: '7 Renk Gradyan', icon: 'palette' },
+  { id: 0x06, name: 'Kırmızı Nefes', icon: 'wind' },
+  { id: 0x07, name: 'Yeşil Nefes', icon: 'wind' },
+  { id: 0x08, name: 'Mavi Nefes', icon: 'wind' },
+  { id: 0x09, name: 'Sarı Nefes', icon: 'wind' },
+  { id: 0x0A, name: 'Cyan Nefes', icon: 'wind' },
+  { id: 0x0B, name: 'Mor Nefes', icon: 'wind' },
+  { id: 0x0C, name: 'Beyaz Nefes', icon: 'wind' },
+];
 
 const AnimationPanel = ({ characteristic, device }) => {
-  const [activeAnimation, setActiveAnimation] = useState(null);
+  const [activeEffect, setActiveEffect] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const animationRef = useRef(null);
+  const [speed, setSpeed] = useState(5);
+  const softAnimRef = useRef(null);
 
   useEffect(() => {
     return () => {
-      if (animationRef.current) {
-        clearInterval(animationRef.current);
-      }
+      if (softAnimRef.current) clearInterval(softAnimRef.current);
     };
   }, []);
 
-  const sendColorCommand = async (r, g, b, ww, cw) => {
-    if (!characteristic) return;
-    
-    try {
-      const commandBytes = new Uint8Array([r, g, b, ww, cw]);
-      await characteristic.writeValueWithoutResponse(commandBytes);
-    } catch (error) {
-      console.error('Komut gönderme hatası:', error);
-    }
-  };
-
-  const startAnimation = (type) => {
+  const activateEffect = async (effect) => {
     if (!characteristic) {
-      toast.error('Cihaz bağlı değil!');
+      // Demo mod: Yazılım bazlı animasyon
+      if (softAnimRef.current) clearInterval(softAnimRef.current);
+      setActiveEffect(effect.id);
+      setIsPlaying(true);
+      toast.success(`${effect.name} aktif (demo)`);
       return;
     }
 
-    // Stop current animation
-    if (animationRef.current) {
-      clearInterval(animationRef.current);
-    }
+    try {
+      // Dinamik renk moduna geç ve efekti ayarla
+      const modeCmd = SP630E_COMMANDS.setModeEffect(
+        SP630E_CONFIG.MODES.DYNAMIC_COLOR,
+        effect.id
+      );
+      await characteristic.writeValueWithoutResponse(modeCmd);
 
-    setActiveAnimation(type);
-    setIsPlaying(true);
-    toast.success(`${ANIMATIONS[type]} animasyonu başlatıldı!`);
+      // Hız ayarla
+      await new Promise(resolve => setTimeout(resolve, 50));
+      const speedCmd = SP630E_COMMANDS.setEffectSpeed(speed);
+      await characteristic.writeValueWithoutResponse(speedCmd);
 
-    let step = 0;
-
-    switch (type) {
-      case 'fade':
-        animationRef.current = setInterval(() => {
-          const brightness = Math.round((Math.sin(step * 0.1) + 1) * 50);
-          sendColorCommand(brightness, brightness, brightness, brightness, brightness);
-          step++;
-        }, 100);
-        break;
-
-      case 'pulse':
-        animationRef.current = setInterval(() => {
-          const brightness = Math.round((Math.sin(step * 0.2) + 1) * 50);
-          sendColorCommand(brightness, 0, brightness, 0, 0);
-          step++;
-        }, 80);
-        break;
-
-      case 'rainbow':
-        animationRef.current = setInterval(() => {
-          const r = Math.round((Math.sin(step * 0.1) + 1) * 50);
-          const g = Math.round((Math.sin(step * 0.1 + 2) + 1) * 50);
-          const b = Math.round((Math.sin(step * 0.1 + 4) + 1) * 50);
-          sendColorCommand(r, g, b, 0, 0);
-          step++;
-        }, 150);
-        break;
-
-      case 'strobe':
-        animationRef.current = setInterval(() => {
-          const on = step % 2 === 0;
-          sendColorCommand(
-            on ? 100 : 0,
-            on ? 100 : 0,
-            on ? 100 : 0,
-            on ? 100 : 0,
-            on ? 100 : 0
-          );
-          step++;
-        }, 200);
-        break;
-
-      default:
-        break;
+      setActiveEffect(effect.id);
+      setIsPlaying(true);
+      toast.success(`${effect.name} efekti aktif!`);
+    } catch (error) {
+      toast.error(`Efekt hatası: ${error.message}`);
     }
   };
 
-  const stopAnimation = () => {
-    if (animationRef.current) {
-      clearInterval(animationRef.current);
-      animationRef.current = null;
+  const stopEffect = async () => {
+    if (softAnimRef.current) {
+      clearInterval(softAnimRef.current);
+      softAnimRef.current = null;
     }
-    setIsPlaying(false);
-    setActiveAnimation(null);
-    
-    // Turn off LEDs
+
     if (characteristic) {
-      sendColorCommand(0, 0, 0, 0, 0);
+      try {
+        // Statik moda geri dön
+        const modeCmd = SP630E_COMMANDS.setModeEffect(
+          SP630E_CONFIG.MODES.STATIC_COLOR,
+          0x01
+        );
+        await characteristic.writeValueWithoutResponse(modeCmd);
+      } catch (error) {
+        toast.error(`Durdurma hatası: ${error.message}`);
+      }
     }
+
+    setIsPlaying(false);
+    setActiveEffect(null);
+    toast.info('Efekt durduruldu');
+  };
+
+  const updateSpeed = async (newSpeed) => {
+    setSpeed(newSpeed[0]);
     
-    toast.info('Animasyon durduruldu');
+    if (characteristic && isPlaying) {
+      try {
+        const speedCmd = SP630E_COMMANDS.setEffectSpeed(newSpeed[0]);
+        await characteristic.writeValueWithoutResponse(speedCmd);
+      } catch (error) {
+        console.warn('Hız güncelleme hatası:', error);
+      }
+    }
   };
 
   return (
     <div className="space-y-6">
-      {/* Animation Controls */}
+      {/* Effect Speed Control */}
       <div className="bg-[#121212] border border-white/10 rounded-lg p-6">
         <h3 className="text-xl font-bold mb-4" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>
-          ANİMASYON MODLARı
+          EFEKT HIZI
+        </h3>
+        <div className="flex justify-between items-center mb-3">
+          <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#A1A1AA]">Hız</span>
+          <span className="text-2xl font-medium text-[#007AFF]" style={{ fontFamily: 'JetBrains Mono, monospace' }} data-testid="speed-value">
+            {speed}
+          </span>
+        </div>
+        <Slider
+          value={[speed]}
+          onValueChange={updateSpeed}
+          min={1}
+          max={10}
+          step={1}
+          trackColor="#007AFF"
+          data-testid="speed-slider"
+        />
+      </div>
+
+      {/* PWM Dynamic Effects */}
+      <div className="bg-[#121212] border border-white/10 rounded-lg p-6">
+        <h3 className="text-xl font-bold mb-4" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>
+          DİNAMİK EFEKTLER
         </h3>
         
         <div className="grid grid-cols-2 gap-3 mb-4">
-          {Object.entries(ANIMATIONS).map(([key, label]) => (
+          {PWM_EFFECTS.map((effect) => (
             <button
-              key={key}
-              onClick={() => startAnimation(key)}
-              disabled={isPlaying && activeAnimation === key}
-              className={`p-4 rounded-lg border font-bold text-sm transition-all ${
-                activeAnimation === key && isPlaying
+              key={effect.id}
+              onClick={() => activateEffect(effect)}
+              className={`p-3 rounded-lg border font-bold text-xs transition-all ${
+                activeEffect === effect.id && isPlaying
                   ? 'bg-[#007AFF] border-[#007AFF] text-white'
                   : 'bg-white/5 border-white/10 text-white hover:bg-white/10'
               }`}
-              data-testid={`animation-button-${key}`}
+              data-testid={`effect-button-${effect.id}`}
             >
-              <Zap className="w-5 h-5 mx-auto mb-2" />
-              {label}
+              <Zap className="w-4 h-4 mx-auto mb-1" />
+              <span className="block truncate">{effect.name}</span>
             </button>
           ))}
         </div>
 
         {isPlaying ? (
           <Button
-            onClick={stopAnimation}
+            onClick={stopEffect}
             className="w-full h-12 bg-[#FF3B30] hover:bg-[#CC2E26] text-white rounded-lg font-bold uppercase tracking-wider transition-all border border-white/10"
             data-testid="stop-animation-button"
           >
@@ -150,24 +158,23 @@ const AnimationPanel = ({ characteristic, device }) => {
             DURDUR
           </Button>
         ) : (
-          <div className="text-center py-4">
+          <div className="text-center py-3">
             <p className="text-sm text-[#A1A1AA]">
-              Bir animasyon seçin ve LED'leriniz canlanıyor!
+              Bir efekt seçerek LED'lerinizi canlandırın
             </p>
           </div>
         )}
       </div>
 
-      {/* Info */}
+      {/* Protocol Info */}
       <div className="bg-[#121212] border border-white/10 rounded-lg p-6">
         <h3 className="text-xl font-bold mb-3" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>
-          BİLGİ
+          PROTOKOL
         </h3>
-        <div className="space-y-2 text-sm text-[#A1A1AA]">
-          <p><span className="text-white font-bold">Yumuşak Geçiş:</span> Tüm kanallarda kademeli parlaklık değişimi</p>
-          <p><span className="text-white font-bold">Nabız:</span> Mor tonda ritmik nabız efekti</p>
-          <p><span className="text-white font-bold">Gökkuşağı:</span> RGB kanallarında dönen renk geçişleri</p>
-          <p><span className="text-white font-bold">Stroboskop:</span> Hızlı açma-kapama efekti</p>
+        <div className="space-y-2 text-xs text-[#A1A1AA] font-mono">
+          <p>Komut: <span className="text-white">0x53 [CMD] 0x00 0x01 0x00 [LEN] [DATA]</span></p>
+          <p>Mod: <span className="text-white">0x53 0x53 ... [mode] [effect]</span></p>
+          <p>Hız: <span className="text-white">0x53 0x54 ... [1-10]</span></p>
         </div>
       </div>
     </div>

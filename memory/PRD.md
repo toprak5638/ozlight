@@ -45,6 +45,15 @@ SP630E 5 kanallı RGBWW LED kontrol cihazı için gelişmiş web uygulaması. Me
 - [x] Ayarlar panelinde BLE protokol UUID ve komut formatı gösterimi
 - [x] %100 test geçişi (backend + frontend, iteration 2)
 
+### Phase 3: PWA + iOS Bluefy Desteği (April 15, 2026)
+- [x] PWA manifest.json eklendi (standalone, portrait, dark theme)
+- [x] Service Worker eklendi (cache stratejisi, offline destek)
+- [x] iOS meta etiketleri (apple-mobile-web-app-capable, status-bar-style)
+- [x] iOS Bluefy tarayıcı rehberi (App Store linki ile)
+- [x] Ana ekrana ekleme rehberi (iOS/Android/Desktop)
+- [x] Tüm bileşenlerde SP630E gerçek protokol kullanımı (setRGBWW komutu)
+- [x] %100 test geçişi (backend + frontend + PWA, iteration 3)
+
 ## Prioritized Backlog
 ### P0 (Critical)
 - SP630E gerçek Bluetooth UUID'lerini keşfetme (reverse engineering)

@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Star, Trash2, Download, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
+import { SP630E_COMMANDS } from '../lib/sp630e-protocol';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -65,18 +66,24 @@ const PresetsPanel = ({ channels, setChannels, characteristic, device }) => {
 
     if (characteristic) {
       try {
-        const commandBytes = new Uint8Array([
+        // Gerçek SP630E protokolü kullan
+        const result = SP630E_COMMANDS.setRGBWW(
           preset.color.red,
           preset.color.green,
           preset.color.blue,
           preset.color.warm_white,
           preset.color.cool_white
-        ]);
-        await characteristic.writeValueWithoutResponse(commandBytes);
+        );
+        for (const cmd of result.commands) {
+          await characteristic.writeValueWithoutResponse(cmd);
+          await new Promise(resolve => setTimeout(resolve, 50));
+        }
         toast.success(`"${preset.name}" preset yüklendi!`);
       } catch (error) {
         toast.error('Preset yüklenemedi!');
       }
+    } else {
+      toast.success(`"${preset.name}" preset yüklendi (demo)`);
     }
   };
 

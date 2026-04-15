@@ -23,7 +23,13 @@ const LEDController = () => {
 
   useEffect(() => {
     if (!navigator.bluetooth) {
-      toast.error('Web Bluetooth API bu tarayıcıda desteklenmiyor. Chrome veya Edge kullanın.');
+      // iOS Safari için özel mesaj
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      if (isIOS) {
+        toast.error('iOS Safari Web Bluetooth desteklemiyor. Bluefy tarayıcısını App Store\'dan indirin!', { duration: 8000 });
+      } else {
+        toast.error('Web Bluetooth API bu tarayıcıda desteklenmiyor. Chrome veya Edge kullanın.');
+      }
     }
   }, []);
 

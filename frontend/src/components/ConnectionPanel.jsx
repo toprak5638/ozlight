@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Bluetooth, Loader2, Wifi } from 'lucide-react';
+import { Bluetooth, Loader2, Smartphone, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
 import { SP630E_CONFIG, SP630E_COMMANDS } from '../lib/sp630e-protocol';
@@ -10,6 +10,9 @@ const API = `${BACKEND_URL}/api`;
 
 const ConnectionPanel = ({ onConnect, onDemoMode }) => {
   const [isScanning, setIsScanning] = useState(false);
+  const [showIOSGuide, setShowIOSGuide] = useState(false);
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const hasBluetooth = !!navigator.bluetooth;
 
   const startScan = async () => {
     if (!navigator.bluetooth) {
@@ -174,6 +177,57 @@ const ConnectionPanel = ({ onConnect, onDemoMode }) => {
             <span className="px-3 py-1 bg-white/5 rounded-full text-xs font-mono">5CH PWM</span>
           </div>
         </div>
+
+        {/* iOS Bluefy Rehberi */}
+        {isIOS && !hasBluetooth && (
+          <div className="mt-4 bg-[#007AFF]/10 border border-[#007AFF]/30 rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Smartphone className="w-5 h-5 text-[#007AFF]" />
+              <h4 className="font-bold text-sm text-[#007AFF]">iOS Kullanıcıları</h4>
+            </div>
+            <div className="space-y-2 text-xs text-[#A1A1AA]">
+              <p>Safari Web Bluetooth desteklemiyor. Bunun yerine:</p>
+              <ol className="list-decimal list-inside space-y-1 ml-1">
+                <li>App Store'dan <span className="text-white font-bold">Bluefy</span> tarayıcısını indirin</li>
+                <li>Bluefy'da bu sayfayı açın</li>
+                <li>Paylaş butonundan <span className="text-white font-bold">"Ana Ekrana Ekle"</span> seçin</li>
+                <li>"CİHAZ ARA" butonuna tıklayın</li>
+              </ol>
+              <a 
+                href="https://apps.apple.com/app/bluefy-web-ble-browser/id1492822055"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 mt-2 text-[#007AFF] font-bold hover:underline"
+                data-testid="bluefy-link"
+              >
+                <ExternalLink className="w-3 h-3" />
+                Bluefy'ı İndir
+              </a>
+            </div>
+          </div>
+        )}
+
+        {/* PWA Kurulum Rehberi */}
+        {!showIOSGuide && (
+          <button
+            onClick={() => setShowIOSGuide(!showIOSGuide)}
+            className="w-full mt-3 text-xs text-[#52525B] hover:text-[#A1A1AA] transition-colors"
+            data-testid="install-guide-toggle"
+          >
+            {showIOSGuide ? 'Rehberi gizle' : 'Ana ekrana nasıl eklenir?'}
+          </button>
+        )}
+
+        {showIOSGuide && (
+          <div className="mt-3 bg-white/5 rounded-lg p-4 text-left">
+            <h4 className="font-bold text-sm mb-2">Ana Ekrana Ekleme</h4>
+            <div className="space-y-1 text-xs text-[#A1A1AA]">
+              <p><span className="text-white">iOS (Bluefy):</span> Paylaş {'>'} Ana Ekrana Ekle</p>
+              <p><span className="text-white">Android (Chrome):</span> Menü {'>'} Ana Ekrana Ekle</p>
+              <p><span className="text-white">Desktop (Chrome):</span> Adres çubuğu {'>'} Yükle simgesi</p>
+            </div>
+          </div>
+        )}
 
         <button
           onClick={onDemoMode}

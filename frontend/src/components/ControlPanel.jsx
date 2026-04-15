@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useRef, useCallback } from 'react';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
-import { Send, Power, PowerOff } from 'lucide-react';
+import { Power, PowerOff } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
 import { SP630E_COMMANDS } from '../lib/sp630e-protocol';
@@ -18,76 +18,81 @@ const CHANNEL_CONFIG = [
 ];
 
 const ControlPanel = ({ channels, setChannels, characteristic, device }) => {
-  const updateChannel = (channel, value) => {
-    setChannels(prev => ({ ...prev, [channel]: value[0] }));
-  };
+  const sendTimeoutRef = useRef(null);
+  const lastSentRef = useRef(null);
 
-  const sendCommand = async () => {
-    try {
+  // Debounced BLE komut gönderimi (150ms)
+  const sendBLECommand = useCallback((newChannels) => {
+    if (sendTimeoutRef.current) {
+      clearTimeout(sendTimeoutRef.current);
+    }
+
+    sendTimeoutRef.current = setTimeout(async () => {
+      const ch = newChannels;
+      
       if (characteristic) {
-        // Gerçek SP630E protokolü kullan
-        const result = SP630E_COMMANDS.setRGBWW(
-          channels.red,
-          channels.green,
-          channels.blue,
-          channels.warmWhite,
-          channels.coolWhite
-        );
-
-        // Tüm komutları sırayla gönder
-        for (const cmd of result.commands) {
-          await characteristic.writeValueWithoutResponse(cmd);
-          // Komutlar arası küçük gecikme
-          await new Promise(resolve => setTimeout(resolve, 50));
+        try {
+          const result = SP630E_COMMANDS.setRGBWW(
+            ch.red, ch.green, ch.blue, ch.warmWhite, ch.coolWhite
+          );
+          for (const cmd of result.commands) {
+            await characteristic.writeValueWithoutResponse(cmd);
+            await new Promise(resolve => setTimeout(resolve, 30));
+          }
+        } catch (error) {
+          console.warn('BLE komut hatası:', error);
         }
-
-        toast.success(`Komut gönderildi: ${result.description}`);
-      } else {
-        toast.info('Demo modu: Komut simüle edildi');
       }
 
-      // Backend'e log kaydet
+      // Backend log (sessiz)
       try {
         if (device) {
           await axios.post(`${API}/commands/send`, {
             device_id: device.id,
             color: {
-              red: channels.red,
-              green: channels.green,
-              blue: channels.blue,
-              warm_white: channels.warmWhite,
-              cool_white: channels.coolWhite
+              red: ch.red, green: ch.green, blue: ch.blue,
+              warm_white: ch.warmWhite, cool_white: ch.coolWhite
             }
           });
         }
-      } catch (error) {
-        console.warn('Backend log hatası:', error);
-      }
-    } catch (error) {
-      toast.error(`Komut gönderilemedi: ${error.message}`);
-    }
+      } catch (e) { /* sessiz */ }
+
+      lastSentRef.current = ch;
+    }, 150);
+  }, [characteristic, device]);
+
+  const updateChannel = (channel, value) => {
+    const newChannels = { ...channels, [channel]: value[0] };
+    setChannels(newChannels);
+    sendBLECommand(newChannels);
   };
 
   const powerOn = async () => {
-    setChannels({ red: 100, green: 100, blue: 100, warmWhite: 100, coolWhite: 100 });
+    const newChannels = { red: 100, green: 100, blue: 100, warmWhite: 100, coolWhite: 100 };
+    setChannels(newChannels);
     if (characteristic) {
       try {
         await characteristic.writeValueWithoutResponse(SP630E_COMMANDS.powerOn());
-        toast.success('Cihaz açıldı');
+        await new Promise(r => setTimeout(r, 50));
+        const result = SP630E_COMMANDS.setRGBWW(100, 100, 100, 100, 100);
+        for (const cmd of result.commands) {
+          await characteristic.writeValueWithoutResponse(cmd);
+          await new Promise(r => setTimeout(r, 30));
+        }
       } catch (error) {
-        toast.error(`Açma hatası: ${error.message}`);
+        toast.error(`Hata: ${error.message}`);
       }
     }
   };
 
   const powerOff = async () => {
-    setChannels({ red: 0, green: 0, blue: 0, warmWhite: 0, coolWhite: 0 });
+    const newChannels = { red: 0, green: 0, blue: 0, warmWhite: 0, coolWhite: 0 };
+    setChannels(newChannels);
     if (characteristic) {
       try {
         await characteristic.writeValueWithoutResponse(SP630E_COMMANDS.powerOff());
-        toast.success('Cihaz kapatıldı');
       } catch (error) {
-        toast.error(`Kapatma hatası: ${error.message}`);
+        toast.error(`Hata: ${error.message}`);
       }
     }
   };
@@ -98,11 +103,9 @@ const ControlPanel = ({ channels, setChannels, characteristic, device }) => {
     const b = Math.round(channels.blue * 2.55);
     const wwContrib = Math.round(channels.warmWhite * 0.8);
     const cwContrib = Math.round(channels.coolWhite * 0.6);
-    
     const finalR = Math.min(255, r + wwContrib);
     const finalG = Math.min(255, g + Math.round((wwContrib + cwContrib) * 0.7));
     const finalB = Math.min(255, b + cwContrib);
-    
     return `rgb(${finalR}, ${finalG}, ${finalB})`;
   };
 
@@ -113,9 +116,9 @@ const ControlPanel = ({ channels, setChannels, characteristic, device }) => {
 
   return (
     <div className="space-y-6">
-      {/* Preview Panel */}
+      {/* Preview */}
       <div 
-        className="h-28 rounded-lg flex items-center justify-center font-bold transition-all duration-300 border border-white/10"
+        className="h-28 rounded-lg flex items-center justify-center transition-all duration-200 border border-white/10"
         style={{
           backgroundColor: getPreviewColor(),
           boxShadow: `0 0 ${getGlowIntensity()}px ${getPreviewColor()}, 0 0 ${getGlowIntensity() * 2}px ${getPreviewColor()}`
@@ -147,15 +150,12 @@ const ControlPanel = ({ channels, setChannels, characteristic, device }) => {
         </Button>
       </div>
 
-      {/* Channel Sliders */}
+      {/* Channel Sliders - Anlık komut gönderir */}
       <div className="bg-[#121212] border border-white/10 rounded-lg p-6 space-y-6">
         {CHANNEL_CONFIG.map(({ key, label, color }) => (
           <div key={key}>
             <div className="flex justify-between items-center mb-3">
-              <label 
-                className="text-xs font-bold uppercase tracking-[0.2em]"
-                style={{ color }}
-              >
+              <label className="text-xs font-bold uppercase tracking-[0.2em]" style={{ color }}>
                 {label}
               </label>
               <span 
@@ -176,15 +176,6 @@ const ControlPanel = ({ channels, setChannels, characteristic, device }) => {
             />
           </div>
         ))}
-
-        <Button
-          onClick={sendCommand}
-          className="w-full h-12 bg-[#007AFF] hover:bg-[#0066CC] text-white rounded-lg font-bold uppercase tracking-wider transition-all border border-white/10 mt-4 hover:translate-y-[-1px]"
-          data-testid="send-command-button"
-        >
-          <Send className="w-5 h-5 mr-2" />
-          KOMUTU GÖNDER
-        </Button>
       </div>
     </div>
   );

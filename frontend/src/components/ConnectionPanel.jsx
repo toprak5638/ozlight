@@ -1,127 +1,79 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Bluetooth, Loader2, Smartphone, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
-import { SP630E_CONFIG, SP630E_COMMANDS } from '../lib/sp630e-protocol';
+import { SP630E_CONFIG } from '../lib/sp630e-protocol';
+import { scanAndConnect, getPlatformInfo } from '../lib/ble-connection';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
 const ConnectionPanel = ({ onConnect, onDemoMode }) => {
   const [isScanning, setIsScanning] = useState(false);
-  const [showIOSGuide, setShowIOSGuide] = useState(false);
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-  const hasBluetooth = !!navigator.bluetooth;
+  const [showGuide, setShowGuide] = useState(false);
+  const platform = getPlatformInfo();
 
   const startScan = async () => {
-    if (!navigator.bluetooth) {
-      toast.error('Web Bluetooth bu tarayıcıda desteklenmiyor! Chrome veya Edge kullanın.');
+    if (!platform.hasWebBluetooth && !platform.isCapacitor) {
+      if (platform.isIOS) {
+        toast.error('iOS Safari Bluetooth desteklemiyor. Bluefy tarayıcısını indirin veya native uygulamayı kullanın!', { duration: 8000 });
+      } else {
+        toast.error('Bu tarayıcıda Bluetooth desteklenmiyor. Chrome veya Edge kullanın.');
+      }
       return;
     }
 
     setIsScanning(true);
 
     try {
-      toast.info('SP630E cihazı aranıyor...');
-
-      const device = await navigator.bluetooth.requestDevice({
-        filters: [
-          { services: [SP630E_CONFIG.SERVICE_UUID] },
-          { namePrefix: 'SP' },
-          { namePrefix: 'LED' },
-          { namePrefix: 'BLE' }
-        ],
-        optionalServices: [
-          SP630E_CONFIG.SERVICE_UUID,
-          SP630E_CONFIG.VENDOR_SERVICE_UUID
-        ]
+      const connection = await scanAndConnect((status) => {
+        switch (status) {
+          case 'scanning':
+            toast.info('SP630E aranıyor...');
+            break;
+          case 'connecting':
+            toast.info('Bağlanıyor...');
+            break;
+          case 'connected':
+            toast.success('Bağlandı!');
+            break;
+          case 'disconnected':
+            toast.error('Bağlantı kesildi!');
+            onConnect(null, null);
+            break;
+          default:
+            break;
+        }
       });
-
-      toast.info(`${device.name || 'SP630E'} bağlanıyor...`);
-
-      const gattServer = await device.gatt.connect();
-      
-      let service, characteristic;
-      
-      // Önce ana servis UUID'i dene
-      try {
-        service = await gattServer.getPrimaryService(SP630E_CONFIG.SERVICE_UUID);
-        characteristic = await service.getCharacteristic(SP630E_CONFIG.WRITE_CHAR_UUID);
-        toast.info('Ana BLE servisi bulundu');
-      } catch (e) {
-        // Ana servis bulunamazsa, vendor servisini dene
-        try {
-          service = await gattServer.getPrimaryService(SP630E_CONFIG.VENDOR_SERVICE_UUID);
-          characteristic = await service.getCharacteristic(SP630E_CONFIG.VENDOR_WRITE_UUID);
-          toast.info('Vendor BLE servisi bulundu');
-        } catch (e2) {
-          throw new Error('Cihaz servisleri bulunamadı. Doğru cihazı seçtiğinizden emin olun.');
-        }
-      }
-
-      // Bildirim alıcısını ayarla (varsa)
-      try {
-        const chars = await service.getCharacteristics();
-        for (const char of chars) {
-          const props = char.properties;
-          if (props.notify || props.indicate) {
-            await char.startNotifications();
-            char.addEventListener('characteristicvaluechanged', (event) => {
-              const data = new Uint8Array(event.target.value.buffer);
-              console.log('SP630E Bildirim:', Array.from(data).map(b => b.toString(16).padStart(2, '0')).join(' '));
-            });
-            toast.info('Bildirimler aktif');
-          }
-        }
-      } catch (e) {
-        console.warn('Bildirim kurulumu başarısız (önemli değil):', e);
-      }
-
-      // Durum sorgula
-      try {
-        const queryCmd = SP630E_COMMANDS.queryState();
-        await characteristic.writeValueWithoutResponse(queryCmd);
-      } catch (e) {
-        console.warn('Durum sorgusu başarısız:', e);
-      }
 
       // Backend'e kaydet
       try {
         await axios.post(`${API}/devices/register`, {
-          device_id: device.id,
-          device_name: device.name || 'SP630E',
+          device_id: connection.device.id,
+          device_name: connection.device.name,
           device_type: 'sp630e',
           service_uuid: SP630E_CONFIG.SERVICE_UUID,
           characteristic_uuid: SP630E_CONFIG.WRITE_CHAR_UUID,
           is_connected: true
         });
       } catch (error) {
-        // 409 = zaten kayıtlı, sorun değil
         if (error.response?.status !== 409) {
           console.warn('Backend kayıt hatası:', error);
         }
-        try {
-          await axios.put(`${API}/devices/${device.id}/connection`, null, {
-            params: { is_connected: true }
-          });
-        } catch (e) {
-          console.warn('Bağlantı durumu güncelleme hatası:', e);
-        }
       }
 
-      device.addEventListener('gattserverdisconnected', () => {
-        toast.error('SP630E bağlantısı kesildi!');
-        onConnect(null, null);
+      // Connection nesnesini parent'a gönder
+      // write fonksiyonunu characteristic yerine gönder
+      onConnect(connection.device, {
+        writeValueWithoutResponse: connection.write
       });
 
-      toast.success(`${device.name || 'SP630E'} başarıyla bağlandı!`);
-      onConnect(device, characteristic);
     } catch (error) {
       if (error.name === 'NotFoundError') {
         toast.error('Cihaz bulunamadı. SP630E açık ve menzilde olmalı.');
       } else if (error.name === 'SecurityError') {
-        toast.error('Bluetooth izni reddedildi. HTTPS gereklidir.');
+        toast.error('Bluetooth izni gerekli.');
       } else {
         toast.error(`Bağlantı hatası: ${error.message}`);
       }
@@ -144,6 +96,11 @@ const ConnectionPanel = ({ onConnect, onDemoMode }) => {
           <p className="text-sm text-[#A1A1AA]">
             SP630E LED kontrolcünüzü bağlamak için aşağıdaki butona tıklayın
           </p>
+          {platform.isCapacitor && (
+            <span className="inline-block mt-2 px-3 py-1 bg-[#00C781]/20 text-[#00C781] rounded-full text-xs font-bold">
+              Native BLE Aktif
+            </span>
+          )}
         </div>
 
         <Button
@@ -166,7 +123,7 @@ const ConnectionPanel = ({ onConnect, onDemoMode }) => {
         </Button>
 
         <div className="pt-4 border-t border-white/10">
-          <p className="text-xs text-[#52525B] mb-3">Protokol Bilgisi</p>
+          <p className="text-xs text-[#52525B] mb-3">Protokol</p>
           <div className="bg-white/5 rounded-lg p-3 text-left">
             <p className="text-xs font-mono text-[#A1A1AA] mb-1">Service: <span className="text-[#007AFF]">0000ffe0-...-00805f9b34fb</span></p>
             <p className="text-xs font-mono text-[#A1A1AA]">Write: <span className="text-[#007AFF]">0000ffe1-...-00805f9b34fb</span></p>
@@ -178,20 +135,18 @@ const ConnectionPanel = ({ onConnect, onDemoMode }) => {
           </div>
         </div>
 
-        {/* iOS Bluefy Rehberi */}
-        {isIOS && !hasBluetooth && (
-          <div className="mt-4 bg-[#007AFF]/10 border border-[#007AFF]/30 rounded-lg p-4">
+        {/* iOS Bluefy Rehberi (sadece gerektiğinde göster) */}
+        {platform.needsBluefy && (
+          <div className="bg-[#007AFF]/10 border border-[#007AFF]/30 rounded-lg p-4">
             <div className="flex items-center gap-2 mb-3">
               <Smartphone className="w-5 h-5 text-[#007AFF]" />
               <h4 className="font-bold text-sm text-[#007AFF]">iOS Kullanıcıları</h4>
             </div>
             <div className="space-y-2 text-xs text-[#A1A1AA]">
-              <p>Safari Web Bluetooth desteklemiyor. Bunun yerine:</p>
+              <p>Safari Bluetooth desteklemiyor. İki seçenek:</p>
               <ol className="list-decimal list-inside space-y-1 ml-1">
-                <li>App Store'dan <span className="text-white font-bold">Bluefy</span> tarayıcısını indirin</li>
-                <li>Bluefy'da bu sayfayı açın</li>
-                <li>Paylaş butonundan <span className="text-white font-bold">"Ana Ekrana Ekle"</span> seçin</li>
-                <li>"CİHAZ ARA" butonuna tıklayın</li>
+                <li><span className="text-white font-bold">Bluefy</span> tarayıcısını indirin (hızlı çözüm)</li>
+                <li><span className="text-white font-bold">Native uygulama</span> kurun (en iyi deneyim)</li>
               </ol>
               <a 
                 href="https://apps.apple.com/app/bluefy-web-ble-browser/id1492822055"
@@ -207,31 +162,27 @@ const ConnectionPanel = ({ onConnect, onDemoMode }) => {
           </div>
         )}
 
-        {/* PWA Kurulum Rehberi */}
-        {!showIOSGuide && (
-          <button
-            onClick={() => setShowIOSGuide(!showIOSGuide)}
-            className="w-full mt-3 text-xs text-[#52525B] hover:text-[#A1A1AA] transition-colors"
-            data-testid="install-guide-toggle"
-          >
-            {showIOSGuide ? 'Rehberi gizle' : 'Ana ekrana nasıl eklenir?'}
-          </button>
-        )}
+        <button
+          onClick={() => setShowGuide(!showGuide)}
+          className="w-full text-xs text-[#52525B] hover:text-[#A1A1AA] transition-colors"
+          data-testid="install-guide-toggle"
+        >
+          {showGuide ? 'Rehberi gizle' : 'Ana ekrana nasıl eklenir?'}
+        </button>
 
-        {showIOSGuide && (
-          <div className="mt-3 bg-white/5 rounded-lg p-4 text-left">
-            <h4 className="font-bold text-sm mb-2">Ana Ekrana Ekleme</h4>
+        {showGuide && (
+          <div className="bg-white/5 rounded-lg p-4 text-left">
             <div className="space-y-1 text-xs text-[#A1A1AA]">
               <p><span className="text-white">iOS (Bluefy):</span> Paylaş {'>'} Ana Ekrana Ekle</p>
               <p><span className="text-white">Android (Chrome):</span> Menü {'>'} Ana Ekrana Ekle</p>
-              <p><span className="text-white">Desktop (Chrome):</span> Adres çubuğu {'>'} Yükle simgesi</p>
+              <p><span className="text-white">Desktop (Chrome):</span> Adres çubuğu {'>'} Yükle</p>
             </div>
           </div>
         )}
 
         <button
           onClick={onDemoMode}
-          className="w-full mt-4 text-xs text-[#52525B] hover:text-[#A1A1AA] transition-colors underline"
+          className="w-full text-xs text-[#52525B] hover:text-[#A1A1AA] transition-colors underline"
           data-testid="demo-mode-button"
         >
           Bluetooth olmadan demo modunda dene

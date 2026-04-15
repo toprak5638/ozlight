@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Bluetooth, SlidersHorizontal, Star, Clock, Zap, Settings } from 'lucide-react';
+import { SlidersHorizontal, Star, Clock, Zap, Settings, Fish } from 'lucide-react';
 import { Toaster } from '@/components/ui/sonner';
 import { toast } from 'sonner';
 import ConnectionPanel from '../components/ConnectionPanel';
@@ -8,6 +8,7 @@ import ControlPanel from '../components/ControlPanel';
 import PresetsPanel from '../components/PresetsPanel';
 import SchedulePanel from '../components/SchedulePanel';
 import AnimationPanel from '../components/AnimationPanel';
+import AquariumPanel from '../components/AquariumPanel';
 
 const LEDController = () => {
   const [selectedDevice, setSelectedDevice] = useState(null);
@@ -83,13 +84,20 @@ const LEDController = () => {
           <ConnectionPanel onConnect={handleConnect} onDemoMode={enterDemoMode} />
         ) : (
           <Tabs defaultValue="control" className="w-full">
-            <TabsList className="grid w-full grid-cols-5 bg-[#121212] border border-white/10 p-1 rounded-lg mb-6" data-testid="main-tabs">
+            <TabsList className="grid w-full grid-cols-6 bg-[#121212] border border-white/10 p-1 rounded-lg mb-6" data-testid="main-tabs">
               <TabsTrigger 
                 value="control" 
                 className="data-[state=active]:bg-white/10 text-xs"
                 data-testid="control-tab"
               >
                 <SlidersHorizontal className="w-4 h-4" />
+              </TabsTrigger>
+              <TabsTrigger 
+                value="aquarium" 
+                className="data-[state=active]:bg-white/10 text-xs"
+                data-testid="aquarium-tab"
+              >
+                <Fish className="w-4 h-4" />
               </TabsTrigger>
               <TabsTrigger 
                 value="presets" 
@@ -130,6 +138,14 @@ const LEDController = () => {
               />
             </TabsContent>
 
+            <TabsContent value="aquarium" data-testid="aquarium-content">
+              <AquariumPanel 
+                characteristic={characteristic}
+                device={selectedDevice}
+                setChannels={setChannels}
+              />
+            </TabsContent>
+
             <TabsContent value="presets" data-testid="presets-content">
               <PresetsPanel 
                 channels={channels}
@@ -140,7 +156,7 @@ const LEDController = () => {
             </TabsContent>
 
             <TabsContent value="schedule" data-testid="schedule-content">
-              <SchedulePanel device={selectedDevice} />
+              <SchedulePanel device={selectedDevice} characteristic={characteristic} />
             </TabsContent>
 
             <TabsContent value="animation" data-testid="animation-content">

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { SlidersHorizontal, Star, Clock, Zap, Settings, Fish } from 'lucide-react';
+import { SlidersHorizontal, Star, Clock, Zap, Settings, Fish, Leaf } from 'lucide-react';
 import { Toaster } from '@/components/ui/sonner';
 import { toast } from 'sonner';
 import ConnectionPanel from '../components/ConnectionPanel';
@@ -9,6 +9,7 @@ import PresetsPanel from '../components/PresetsPanel';
 import SchedulePanel from '../components/SchedulePanel';
 import AnimationPanel from '../components/AnimationPanel';
 import AquariumPanel from '../components/AquariumPanel';
+import PlantedModesPanel from '../components/PlantedModesPanel';
 
 const LEDController = () => {
   const [selectedDevice, setSelectedDevice] = useState(null);
@@ -84,45 +85,52 @@ const LEDController = () => {
           <ConnectionPanel onConnect={handleConnect} onDemoMode={enterDemoMode} />
         ) : (
           <Tabs defaultValue="control" className="w-full">
-            <TabsList className="grid w-full grid-cols-6 bg-[#121212] border border-white/10 p-1 rounded-lg mb-6" data-testid="main-tabs">
+            <TabsList className="flex w-full bg-[#121212] border border-white/10 p-1 rounded-lg mb-6 overflow-x-auto gap-1" data-testid="main-tabs">
               <TabsTrigger 
                 value="control" 
-                className="data-[state=active]:bg-white/10 text-xs"
+                className="data-[state=active]:bg-white/10 text-xs flex-1 min-w-[44px]"
                 data-testid="control-tab"
               >
                 <SlidersHorizontal className="w-4 h-4" />
               </TabsTrigger>
               <TabsTrigger 
+                value="modes" 
+                className="data-[state=active]:bg-white/10 text-xs flex-1 min-w-[44px]"
+                data-testid="modes-tab"
+              >
+                <Leaf className="w-4 h-4" />
+              </TabsTrigger>
+              <TabsTrigger 
                 value="aquarium" 
-                className="data-[state=active]:bg-white/10 text-xs"
+                className="data-[state=active]:bg-white/10 text-xs flex-1 min-w-[44px]"
                 data-testid="aquarium-tab"
               >
                 <Fish className="w-4 h-4" />
               </TabsTrigger>
               <TabsTrigger 
                 value="presets" 
-                className="data-[state=active]:bg-white/10 text-xs"
+                className="data-[state=active]:bg-white/10 text-xs flex-1 min-w-[44px]"
                 data-testid="presets-tab"
               >
                 <Star className="w-4 h-4" />
               </TabsTrigger>
               <TabsTrigger 
                 value="schedule" 
-                className="data-[state=active]:bg-white/10 text-xs"
+                className="data-[state=active]:bg-white/10 text-xs flex-1 min-w-[44px]"
                 data-testid="schedule-tab"
               >
                 <Clock className="w-4 h-4" />
               </TabsTrigger>
               <TabsTrigger 
                 value="animation" 
-                className="data-[state=active]:bg-white/10 text-xs"
+                className="data-[state=active]:bg-white/10 text-xs flex-1 min-w-[44px]"
                 data-testid="animation-tab"
               >
                 <Zap className="w-4 h-4" />
               </TabsTrigger>
               <TabsTrigger 
                 value="settings" 
-                className="data-[state=active]:bg-white/10 text-xs"
+                className="data-[state=active]:bg-white/10 text-xs flex-1 min-w-[44px]"
                 data-testid="settings-tab"
               >
                 <Settings className="w-4 h-4" />
@@ -135,6 +143,14 @@ const LEDController = () => {
                 setChannels={setChannels}
                 characteristic={characteristic}
                 device={selectedDevice}
+              />
+            </TabsContent>
+
+            <TabsContent value="modes" data-testid="modes-content">
+              <PlantedModesPanel
+                characteristic={characteristic}
+                device={selectedDevice}
+                setChannels={setChannels}
               />
             </TabsContent>
 

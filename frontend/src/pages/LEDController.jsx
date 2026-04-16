@@ -1,31 +1,32 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { SlidersHorizontal, Star, Clock, Zap, Settings, Fish, Leaf } from 'lucide-react';
+import { SlidersHorizontal, Clock, Zap, Settings, Fish } from 'lucide-react';
 import { Toaster } from '@/components/ui/sonner';
 import { toast } from 'sonner';
 import ConnectionPanel from '../components/ConnectionPanel';
 import ControlPanel from '../components/ControlPanel';
-import PresetsPanel from '../components/PresetsPanel';
 import SchedulePanel from '../components/SchedulePanel';
 import AnimationPanel from '../components/AnimationPanel';
 import AquariumPanel from '../components/AquariumPanel';
-import PlantedModesPanel from '../components/PlantedModesPanel';
+import { SP630E_COMMANDS } from '../lib/sp630e-protocol';
+
+const STORAGE_KEY = 'sp630e_last_state';
 
 const LEDController = () => {
   const [selectedDevice, setSelectedDevice] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
   const [characteristic, setCharacteristic] = useState(null);
-  const [channels, setChannels] = useState({
-    red: 0,
-    green: 0,
-    blue: 0,
-    warmWhite: 0,
-    coolWhite: 0
+  const [channels, setChannels] = useState(() => {
+    // localStorage'dan son durumu yükle
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try { return JSON.parse(saved); } catch {}
+    }
+    return { red: 0, green: 0, blue: 0, warmWhite: 0, coolWhite: 0 };
   });
 
   useEffect(() => {
     if (!navigator.bluetooth) {
-      // iOS Safari için özel mesaj
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
       if (isIOS) {
         toast.error('iOS Safari Web Bluetooth desteklemiyor. Bluefy tarayıcısını App Store\'dan indirin!', { duration: 8000 });
@@ -35,13 +36,48 @@ const LEDController = () => {
     }
   }, []);
 
+  // Kanal değiştiğinde localStorage'a kaydet
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(channels));
+  }, [channels]);
+
+  // Bağlandığında son durumu cihaza gönder
+  const restoreLastState = async (char) => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (!saved || !char) return;
+
+    try {
+      const ch = JSON.parse(saved);
+      const hasValues = ch.red > 0 || ch.green > 0 || ch.blue > 0 || ch.warmWhite > 0 || ch.coolWhite > 0;
+      
+      if (hasValues) {
+        // Önce aç
+        await char.writeValueWithoutResponse(SP630E_COMMANDS.powerOn());
+        await new Promise(r => setTimeout(r, 100));
+
+        // Son durumu gönder
+        const result = SP630E_COMMANDS.setRGBWW(ch.red, ch.green, ch.blue, ch.warmWhite, ch.coolWhite);
+        for (const cmd of result.commands) {
+          await char.writeValueWithoutResponse(cmd);
+          await new Promise(r => setTimeout(r, 50));
+        }
+        toast.success('Son durum geri yüklendi!');
+      }
+    } catch (e) {
+      console.warn('Durum geri yükleme hatası:', e);
+    }
+  };
+
   const handleConnect = (device, char) => {
     setSelectedDevice(device);
     setCharacteristic(char);
     setIsConnected(true);
+    // Bağlanınca son durumu cihaza gönder
+    restoreLastState(char);
   };
 
   const handleDisconnect = () => {
+    // Kapanmadan önce mevcut durumu kaydet (zaten useEffect ile kaydediliyor)
     setSelectedDevice(null);
     setCharacteristic(null);
     setIsConnected(false);
@@ -85,52 +121,38 @@ const LEDController = () => {
           <ConnectionPanel onConnect={handleConnect} onDemoMode={enterDemoMode} />
         ) : (
           <Tabs defaultValue="control" className="w-full">
-            <TabsList className="flex w-full bg-[#121212] border border-white/10 p-1 rounded-lg mb-6 overflow-x-auto gap-1" data-testid="main-tabs">
+            <TabsList className="grid w-full grid-cols-5 bg-[#121212] border border-white/10 p-1 rounded-lg mb-6" data-testid="main-tabs">
               <TabsTrigger 
                 value="control" 
-                className="data-[state=active]:bg-white/10 text-xs flex-1 min-w-[44px]"
+                className="data-[state=active]:bg-white/10 text-xs"
                 data-testid="control-tab"
               >
                 <SlidersHorizontal className="w-4 h-4" />
               </TabsTrigger>
               <TabsTrigger 
-                value="modes" 
-                className="data-[state=active]:bg-white/10 text-xs flex-1 min-w-[44px]"
-                data-testid="modes-tab"
-              >
-                <Leaf className="w-4 h-4" />
-              </TabsTrigger>
-              <TabsTrigger 
                 value="aquarium" 
-                className="data-[state=active]:bg-white/10 text-xs flex-1 min-w-[44px]"
+                className="data-[state=active]:bg-white/10 text-xs"
                 data-testid="aquarium-tab"
               >
                 <Fish className="w-4 h-4" />
               </TabsTrigger>
               <TabsTrigger 
-                value="presets" 
-                className="data-[state=active]:bg-white/10 text-xs flex-1 min-w-[44px]"
-                data-testid="presets-tab"
-              >
-                <Star className="w-4 h-4" />
-              </TabsTrigger>
-              <TabsTrigger 
                 value="schedule" 
-                className="data-[state=active]:bg-white/10 text-xs flex-1 min-w-[44px]"
+                className="data-[state=active]:bg-white/10 text-xs"
                 data-testid="schedule-tab"
               >
                 <Clock className="w-4 h-4" />
               </TabsTrigger>
               <TabsTrigger 
                 value="animation" 
-                className="data-[state=active]:bg-white/10 text-xs flex-1 min-w-[44px]"
+                className="data-[state=active]:bg-white/10 text-xs"
                 data-testid="animation-tab"
               >
                 <Zap className="w-4 h-4" />
               </TabsTrigger>
               <TabsTrigger 
                 value="settings" 
-                className="data-[state=active]:bg-white/10 text-xs flex-1 min-w-[44px]"
+                className="data-[state=active]:bg-white/10 text-xs"
                 data-testid="settings-tab"
               >
                 <Settings className="w-4 h-4" />
@@ -146,28 +168,11 @@ const LEDController = () => {
               />
             </TabsContent>
 
-            <TabsContent value="modes" data-testid="modes-content">
-              <PlantedModesPanel
-                characteristic={characteristic}
-                device={selectedDevice}
-                setChannels={setChannels}
-              />
-            </TabsContent>
-
             <TabsContent value="aquarium" data-testid="aquarium-content">
               <AquariumPanel 
                 characteristic={characteristic}
                 device={selectedDevice}
                 setChannels={setChannels}
-              />
-            </TabsContent>
-
-            <TabsContent value="presets" data-testid="presets-content">
-              <PresetsPanel 
-                channels={channels}
-                setChannels={setChannels}
-                characteristic={characteristic}
-                device={selectedDevice}
               />
             </TabsContent>
 
@@ -203,6 +208,27 @@ const LEDController = () => {
                       <span className="text-sm text-[#A1A1AA]">Bağlantı</span>
                       <span className="text-sm text-[#00C781]">Bluetooth LE</span>
                     </div>
+                  </div>
+                </div>
+
+                {/* Son Kaydedilen Durum */}
+                <div className="bg-[#121212] border border-white/10 rounded-lg p-6">
+                  <h3 className="text-xl font-bold mb-4" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>SON DURUM</h3>
+                  <p className="text-xs text-[#A1A1AA] mb-3">Cihaz açıldığında bu değerlerle başlar</p>
+                  <div className="flex gap-3 justify-center">
+                    {[
+                      { k: 'red', c: '#FF3B30', l: 'K' },
+                      { k: 'green', c: '#34C759', l: 'Y' },
+                      { k: 'blue', c: '#007AFF', l: 'M' },
+                      { k: 'warmWhite', c: '#FFD60A', l: 'SB' },
+                      { k: 'coolWhite', c: '#E5E5EA', l: 'SoB' },
+                    ].map(({ k, c, l }) => (
+                      <div key={k} className="flex flex-col items-center bg-white/5 rounded-lg p-2 min-w-[48px]">
+                        <span className="text-[10px] font-bold" style={{ color: c }}>{l}</span>
+                        <span className="text-lg font-mono font-bold" data-testid={`saved-${k}`}>{channels[k]}</span>
+                        <span className="text-[9px] text-[#52525B]">%</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
 

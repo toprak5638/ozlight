@@ -81,6 +81,16 @@ SP630E 5 kanallı RGBWW LED kontrol cihazı için gelişmiş web uygulaması. Me
 - [x] Profil localStorage'da kalıcı
 - [x] %100 test geçişi (iteration 5)
 
+### Phase 6: Bitkili Akvaryum Modları (April 16, 2026)
+- [x] 11 bilimsel araştırmaya dayalı akvaryum modu
+  - Bitkili Akvaryum (6 mod): Maksimum Büyüme, Dengeli Büyüme, Kırmızı Bitkiler, Zemin Bitkileri, Low-Tech, Yosun Kontrol
+  - Görüntüleme (5 mod): Doğal Gün Işığı, Canlı Renkler, Sıcak Ambiyans, Ay Işığı, Besleme
+- [x] Her mod için 5 kanallı ince ayar slider'ları
+- [x] Bilimsel notlar (dalga boyları, fotosentez bilgisi)
+- [x] Renk önizleme ve etiket sistemi
+- [x] Hightech ipuçları kartı
+- [x] %100 test geçişi (iteration 6)
+
 ## Prioritized Backlog
 ### P0 (Critical)
 - SP630E gerçek Bluetooth UUID'lerini keşfetme (reverse engineering)

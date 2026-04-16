@@ -1,93 +1,90 @@
 {
-  "theme": "Dark",
-  "archetype": "Archetype 2: The Performance Pro (Tactical & Precision)",
-  "color_palette": {
-    "background_base": "#0A0A0A",
-    "surface": "#121212",
-    "surface_glass": "rgba(255, 255, 255, 0.05)",
-    "text_primary": "#FFFFFF",
-    "text_secondary": "#A1A1AA",
-    "text_tertiary": "#52525B",
-    "border_subtle": "rgba(255, 255, 255, 0.1)",
+  "theme": {
+    "archetype": "5 (Jewel & Luxury)",
+    "mode": "dark",
+    "rationale": "The user requested a premium, stylish dark theme for a smart LED control app. Deep obsidian with vibrant glowing accents conveys high-end hardware and precision."
+  },
+  "fonts": {
+    "headings": "Outfit",
+    "body": "IBM Plex Sans",
+    "instructions": "Use Outfit for major tab titles and mode names. Use IBM Plex Sans for numerical data (percentages, times, BLE details).",
+    "hierarchy": {
+      "h1": "text-4xl tracking-tighter font-light",
+      "h2": "text-2xl tracking-tight font-medium",
+      "h3": "text-xl font-medium",
+      "data": "text-3xl font-light",
+      "label": "text-xs tracking-[0.2em] uppercase font-semibold text-white/50"
+    }
+  },
+  "colors": {
+    "background": {
+      "base": "#05050A",
+      "surface": "#12121C",
+      "glass": "bg-white/5 backdrop-blur-xl border border-white/10"
+    },
+    "text": {
+      "primary": "#FFFFFF",
+      "secondary": "#A0A0AB",
+      "accent": "#FFFFFF"
+    },
     "channels": {
       "red": "#FF3B30",
       "green": "#34C759",
-      "blue": "#007AFF",
+      "blue": "#0A84FF",
       "warm_white": "#FFD60A",
-      "cool_white": "#E5E5EA"
-    },
-    "status_connected": "#00C781",
-    "status_disconnected": "#FF3B30"
-  },
-  "typography": {
-    "heading_font": "Barlow Condensed, sans-serif",
-    "body_font": "DM Sans, sans-serif",
-    "monospace_font": "JetBrains Mono, monospace",
-    "hierarchy": {
-      "h1": "text-3xl sm:text-4xl font-black tracking-tight",
-      "h2": "text-xl sm:text-2xl font-bold tracking-tight",
-      "value_display": "text-3xl font-medium tracking-tight font-mono",
-      "label": "text-xs font-bold uppercase tracking-[0.2em]",
-      "body": "text-sm sm:text-base leading-relaxed"
+      "cold_white": "#5AC8FA"
     }
   },
   "layout_and_spacing": {
-    "strategy": "Mobile-First 'Control Room' Grid",
-    "container": "App MUST be constrained within a max-w-md mx-auto container to simulate a mobile app interface on desktop, filling 100vh.",
-    "spacing_scale": "p-2, p-4, p-6, p-8",
-    "padding_rules": "Always use p-6 for internal card padding to prevent collision."
-  },
-  "surfaces": {
-    "cards": "Neumorphism (Tactile). 1px solid border (border-white/10). Background matches parent (#121212).",
-    "header": "Glassmorphism: bg-black/60, backdrop-blur-xl, border-b border-white/10. Sticky top.",
-    "preview_panel": "Flat background with dynamic Box Shadow (Glow) to reflect the combined RGBWW color output in real-time.",
-    "bottom_nav": "Fixed bottom, Glassmorphism base with high-contrast active tab indicator."
+    "philosophy": "Mobile-first, dense but readable. Cardless layout with glowing accents for interactive elements. Bottom floating tab bar.",
+    "grid": "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6",
+    "spacing": "p-6 sm:p-8 for main containers. Ensure generous padding around sliders to prevent fat-finger issues."
   },
   "components": {
     "sliders": {
-      "type": "Shadcn Slider (Highly Customized)",
-      "instructions": "Increase touch target height (h-10 minimum wrapper). Use tactile slider thumbs (w-6 h-6, rounded-full, border-2 border-white). The track fill MUST match the channel color (Red for Red channel, etc.). Background track is dark grey."
+      "type": "custom HTML/Tailwind ranges or Shadcn Slider",
+      "style": "Neumorphic inset track with intense glowing active track based on channel color. Thumb should be a crisp white circle with drop shadow.",
+      "data_testid": "channel-slider-{color}"
     },
-    "buttons": {
-      "type": "Shadcn Button",
-      "styles": "Sharp 8px border-radius max. High contrast text. Use 1px border. Hover: translate-y-[-1px] with subtle ambient shadow."
+    "bottom_nav": {
+      "style": "Glassmorphism, fixed bottom-0 left-0 right-0, rounded-t-3xl bg-[#12121C]/80 backdrop-blur-2xl border-t border-white/10 flex justify-between px-6 py-4 pb-8",
+      "active_state": "Text pure white, icon filled, small glowing dot indicator below",
+      "inactive_state": "Text/Icon white/40",
+      "data_testid": "nav-tab-{name}"
     },
-    "tabs": {
-      "type": "Shadcn Tabs",
-      "styles": "Full width layout for sections. Selected tab must have high-contrast background, unselected must be muted."
-    },
-    "color_wheel_replacement": {
-      "instructions": "Instead of a standard color wheel, stack 5 distinct horizontal sliders with generous vertical spacing (gap-6). Each slider requires a monospace value readout (0-100%) on the right side."
+    "mode_cards": {
+      "style": "bg-white/5 hover:bg-white/10 transition-colors rounded-2xl p-4 border border-white/5 flex flex-col gap-2 relative overflow-hidden",
+      "active_style": "border-white/40 bg-white/10",
+      "data_testid": "mode-card-{id}"
     }
   },
-  "animations": {
-    "hover": "transition-transform 0.2s ease, opacity 0.2s ease",
-    "interactions": "Sliders should instantly update the top preview panel color without lag.",
-    "loading": "Use simple tactical spinning borders (Tracing Beam style) for Bluetooth connecting state."
-  },
-  "accessibility": {
-    "contrast": "Ensure 4.5:1 ratio for labels. Slider values must be pure white over dark tracks.",
-    "focus": "focus:ring-2 focus:ring-white/50 focus:outline-none",
-    "test_ids": "Mandatory data-testid on all sliders, preset buttons, tab triggers, and the connect button."
+  "image_urls": {
+    "backgrounds": [
+      {
+        "url": "https://images.unsplash.com/photo-1721106519595-5a0026848dcb?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1OTN8MHwxfHNlYXJjaHwyfHxhcXVhcml1bSUyMHBsYW50JTIwZGFyayUyMGJhY2tncm91bmR8ZW58MHx8fHwxNzc2Mjk4MzA1fDA&ixlib=rb-4.1.0&q=85",
+        "category": "hero_background",
+        "description": "Dark atmospheric aquarium plant background. Use this faintly (opacity 10-20%) as a fixed background behind the main view to add depth without distracting from the controls."
+      }
+    ]
   },
   "icons": {
     "library": "lucide-react",
-    "instructions": "Use minimalist icons, 1.5px stroke width. (Bluetooth, SlidersHorizontal, Star, Clock, Settings)"
+    "instructions": "Use lucide-react (Sliders, LayoutGrid, Sun, Timer, Settings). Keep stroke width at 1.5 for a premium thin look."
   },
-  "media_urls": {
-    "backgrounds": {},
-    "icons": {},
-    "logos": {}
+  "accessibility_and_motion": {
+    "animations": "Framer motion for tab transitions (slide in/out), smooth color transitions when dragging sliders.",
+    "contrast": "Ensure all text labels above sliders are pure white for contrast.",
+    "testing": "All interactive elements must have data-testid."
   },
   "instructions_to_main_agent": [
-    "Install and configure lucide-react, @radix-ui/react-icons.",
-    "Build a mobile-first UI inside a max-w-md mx-auto container to feel like a native app on desktop browsers.",
-    "Implement Web Bluetooth API (navigator.bluetooth) to handle the SP630E connection, including the custom UUIDs for this controller.",
-    "Create 5 separate state variables (0-100%) for R, G, B, W1, W2 channels.",
-    "Build the 'Color Preview' box at the top that dynamically combines the RGB values into a background-color, and adds a brightness/glow based on W1/W2 intensity.",
-    "Implement a preset system allowing saving/loading/deleting states using localStorage.",
-    "Include timer/automation mockups or real implementations if backend is provided.",
-    "Include Animation/Effects toggles (Fade, Pulse, Rainbow).",
-    "All interactive elements MUST have data-testid attributes."
+    "Build a mobile-first UI with a fixed bottom navigation bar containing 5 tabs: Kontrol, Modlar, Akvaryum, Zamanlayıcı, Ayarlar.",
+    "Implement the 5 channels (R, G, B, WW, CW) as highly styled vertical or horizontal sliders in the Kontrol tab.",
+    "Use deep obsidian background (#05050A) with the provided background image overlaid at 15% opacity and a backdrop blur on top to create depth.",
+    "Do NOT use teal or purple anywhere in the UI. Stick to the 5 functional LED colors for accents.",
+    "Ensure the app name 'OzLight' is prominently displayed in a sleek, elegant typography at the top of the Kontrol view.",
+    "In Modlar, list 11 plant/viewing modes as 2-column bento grids using mode_cards styling.",
+    "In Akvaryum, present the day simulation (6 phases + moonlight) as a timeline or sleek vertical list with time pickers.",
+    "In Zamanlayıcı, show a simple on/off schedule picker using Shadcn time pickers.",
+    "In Ayarlar, show BLE connection status, protocol info, and basic device settings."
   ]
 }

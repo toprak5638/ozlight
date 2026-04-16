@@ -91,6 +91,15 @@ SP630E 5 kanallı RGBWW LED kontrol cihazı için gelişmiş web uygulaması. Me
 - [x] Hightech ipuçları kartı
 - [x] %100 test geçişi (iteration 6)
 
+### Phase 7: Sadeleştirme + Durum Hatırlama (April 16, 2026)
+- [x] Favoriler/Presets sekmesi kaldırıldı
+- [x] Modlar/Planted sekmesi kaldırıldı
+- [x] 5 temiz tab: Kontrol, Akvaryum, Zamanlayıcı, Animasyon, Ayarlar
+- [x] Son durum localStorage'a kaydediliyor (sp630e_last_state)
+- [x] Cihaz bağlandığında son durum otomatik geri yükleniyor (powerOn + setRGBWW)
+- [x] Ayarlar'da "SON DURUM" göstergesi (K/Y/M/SB/SoB yüzdeleri)
+- [x] %100 test geçişi (iteration 7)
+
 ## Prioritized Backlog
 ### P0 (Critical)
 - SP630E gerçek Bluetooth UUID'lerini keşfetme (reverse engineering)

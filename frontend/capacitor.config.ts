@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.sp630e.ledcontroller',
-  appName: 'SP630E LED Kontrol',
+  appId: 'com.ozlight.app',
+  appName: 'OzLight',
   webDir: 'build',
   server: {
     androidScheme: 'https'
@@ -17,9 +17,13 @@ const config: CapacitorConfig = {
       }
     }
   },
+  android: {
+    backgroundColor: '#05050A',
+    allowMixedContent: true
+  },
   ios: {
     contentInset: 'automatic',
-    backgroundColor: '#0A0A0A',
+    backgroundColor: '#05050A',
     preferredContentMode: 'mobile'
   }
 };

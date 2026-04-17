@@ -165,7 +165,7 @@ const SchedulePanel = ({ device, characteristic }) => {
     <div className="space-y-6">
       {/* Yeni Zamanlayıcı */}
       <div className="bg-[#121212] border border-white/10 rounded-lg p-6">
-        <h3 className="text-xl font-bold mb-4" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>
+        <h3 className="text-xl font-medium mb-4" style={{ fontFamily: 'Outfit' }}>
           ZAMANLAYICI
         </h3>
         
@@ -277,7 +277,7 @@ const SchedulePanel = ({ device, characteristic }) => {
 
       {/* Zamanlayıcılar Listesi */}
       <div className="bg-[#121212] border border-white/10 rounded-lg p-6">
-        <h3 className="text-xl font-bold mb-4" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>
+        <h3 className="text-xl font-medium mb-4" style={{ fontFamily: 'Outfit' }}>
           AKTİF ZAMANLAYICILAR
         </h3>
         

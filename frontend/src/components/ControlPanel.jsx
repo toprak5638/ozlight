@@ -9,11 +9,11 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
 const CHANNELS = [
-  { key: 'red', label: 'Red', color: '#FF3B30', glow: '#FF3B3040' },
-  { key: 'green', label: 'Green', color: '#34C759', glow: '#34C75940' },
-  { key: 'blue', label: 'Blue', color: '#0A84FF', glow: '#0A84FF40' },
-  { key: 'warmWhite', label: 'Warm', color: '#FFD60A', glow: '#FFD60A40' },
-  { key: 'coolWhite', label: 'Cool', color: '#5AC8FA', glow: '#5AC8FA40' }
+  { key: 'red', label: 'R', color: '#FF3B30', glow: '#FF3B3040' },
+  { key: 'green', label: 'G', color: '#34C759', glow: '#34C75940' },
+  { key: 'blue', label: 'B', color: '#0A84FF', glow: '#0A84FF40' },
+  { key: 'warmWhite', label: 'WW', color: '#FFD60A', glow: '#FFD60A40' },
+  { key: 'coolWhite', label: 'CW', color: '#5AC8FA', glow: '#5AC8FA40' }
 ];
 
 const ControlPanel = ({ channels, setChannels, characteristic, device }) => {
@@ -81,10 +81,10 @@ const ControlPanel = ({ channels, setChannels, characteristic, device }) => {
   const glowSize = Math.round(((channels.red + channels.green + channels.blue + channels.warmWhite + channels.coolWhite) / 5) * 0.8);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {/* Color Preview */}
       <div
-        className="h-32 rounded-3xl flex items-center justify-center border border-white/5 transition-all duration-300 relative overflow-hidden"
+        className="h-24 rounded-2xl flex items-center justify-center border border-white/5 transition-all duration-300 relative overflow-hidden"
         style={{
           backgroundColor: getPreviewColor(),
           boxShadow: `0 0 ${glowSize}px ${getPreviewColor()}, 0 4px 30px ${getPreviewColor()}40`
@@ -92,52 +92,35 @@ const ControlPanel = ({ channels, setChannels, characteristic, device }) => {
         data-testid="color-preview"
       >
         <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
-        <span className="text-white/60 text-xs tracking-[0.3em] uppercase font-medium drop-shadow-lg" style={{ fontFamily: 'Outfit' }}>
-          Preview
-        </span>
       </div>
 
-      {/* Power Buttons */}
+      {/* Power */}
       <div className="grid grid-cols-2 gap-3">
-        <button
-          onClick={powerOn}
-          className="flex items-center justify-center gap-2 py-3 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/5 transition-all text-xs font-medium uppercase tracking-wider"
-          data-testid="all-on-button"
-        >
-          <Power className="w-4 h-4" strokeWidth={1.5} /> Aç
+        <button onClick={powerOn} className="flex items-center justify-center gap-2 py-2.5 bg-white/5 hover:bg-white/10 rounded-xl border border-white/5 transition-all text-xs font-medium" data-testid="all-on-button">
+          <Power className="w-3.5 h-3.5" strokeWidth={1.5} /> Aç
         </button>
-        <button
-          onClick={powerOff}
-          className="flex items-center justify-center gap-2 py-3 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/5 transition-all text-xs font-medium uppercase tracking-wider"
-          data-testid="all-off-button"
-        >
-          <PowerOff className="w-4 h-4" strokeWidth={1.5} /> Kapat
+        <button onClick={powerOff} className="flex items-center justify-center gap-2 py-2.5 bg-white/5 hover:bg-white/10 rounded-xl border border-white/5 transition-all text-xs font-medium" data-testid="all-off-button">
+          <PowerOff className="w-3.5 h-3.5" strokeWidth={1.5} /> Kapat
         </button>
       </div>
 
-      {/* Channel Sliders */}
-      <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 space-y-7">
+      {/* Channel Sliders - Compact */}
+      <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-5 space-y-5">
         {CHANNELS.map(({ key, label, color, glow }) => (
           <div key={key}>
-            <div className="flex justify-between items-end mb-3">
+            <div className="flex justify-between items-center mb-2">
               <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: color, boxShadow: `0 0 8px ${glow}` }} />
-                <span className="text-xs tracking-[0.2em] uppercase font-semibold text-white/50">{label}</span>
+                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color, boxShadow: `0 0 6px ${glow}` }} />
+                <span className="text-[10px] tracking-[0.15em] uppercase font-semibold text-white/40">{label}</span>
               </div>
-              <span
-                className="text-3xl font-light tracking-tight"
-                style={{ color, fontFamily: 'IBM Plex Sans' }}
-                data-testid={`${key}-value`}
-              >
+              <span className="text-xl font-light" style={{ color, fontFamily: 'IBM Plex Sans' }} data-testid={`${key}-value`}>
                 {channels[key]}
               </span>
             </div>
             <Slider
               value={[channels[key]]}
               onValueChange={(val) => updateChannel(key, val)}
-              max={100}
-              step={1}
-              trackColor={color}
+              max={100} step={1} trackColor={color}
               data-testid={`${key}-slider`}
             />
           </div>

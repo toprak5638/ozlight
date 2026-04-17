@@ -266,7 +266,7 @@ const AquariumPanel = ({ characteristic, device, setChannels }) => {
   return (
     <div className="space-y-6">
       {/* Durum Göstergesi */}
-      <div className="bg-[#121212] border border-white/10 rounded-lg p-6">
+      <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xl font-bold" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>
             GÜN SİMÜLASYONU
@@ -340,8 +340,8 @@ const AquariumPanel = ({ characteristic, device, setChannels }) => {
       </div>
 
       {/* Zaman Ayarları */}
-      <div className="bg-[#121212] border border-white/10 rounded-lg p-6">
-        <h3 className="text-xl font-bold mb-4" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>
+      <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
+        <h3 className="text-xl font-medium mb-4" style={{ fontFamily: 'Outfit' }}>
           ZAMAN AYARLARI
         </h3>
         <div className="grid grid-cols-2 gap-4 mb-4">
@@ -401,7 +401,7 @@ const AquariumPanel = ({ characteristic, device, setChannels }) => {
       </div>
 
       {/* Ay Işığı */}
-      <div className="bg-[#121212] border border-white/10 rounded-lg p-6">
+      <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xl font-bold" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>
             <Moon className="w-5 h-5 inline mr-2 text-[#007AFF]" />
@@ -454,8 +454,8 @@ const AquariumPanel = ({ characteristic, device, setChannels }) => {
       </div>
 
       {/* Faz Renk Düzenleme */}
-      <div className="bg-[#121212] border border-white/10 rounded-lg p-6">
-        <h3 className="text-xl font-bold mb-4" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>
+      <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
+        <h3 className="text-xl font-medium mb-4" style={{ fontFamily: 'Outfit' }}>
           FAZ RENKLERİ
         </h3>
         <div className="space-y-3">

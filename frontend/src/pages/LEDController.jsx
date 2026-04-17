@@ -15,8 +15,8 @@ const BG_IMAGE = 'https://images.unsplash.com/photo-1721106519595-5a0026848dcb?c
 const TABS = [
   { id: 'control', label: 'Kontrol', icon: SlidersHorizontal },
   { id: 'modes', label: 'Modlar', icon: LayoutGrid },
-  { id: 'aquarium', label: 'Akvaryum', icon: Sun },
-  { id: 'schedule', label: 'Zamanlayıcı', icon: Timer },
+  { id: 'aquarium', label: 'Simülasyon', icon: Sun },
+  { id: 'schedule', label: 'Zamanlama', icon: Timer },
   { id: 'settings', label: 'Ayarlar', icon: Settings },
 ];
 
@@ -190,33 +190,30 @@ const LEDController = () => {
             </header>
 
             {/* Tab Content */}
-            <main className="flex-1 px-6 py-4 pb-28 overflow-y-auto">
+            <main className="flex-1 px-5 py-4 pb-24 overflow-y-auto">
               {renderContent()}
             </main>
 
-            {/* Bottom Nav - Glassmorphism */}
+            {/* Bottom Nav */}
             <nav className="fixed bottom-0 left-0 right-0 z-50">
               <div className="max-w-md mx-auto">
-                <div className="bg-[#12121C]/80 backdrop-blur-2xl border-t border-white/10 rounded-t-3xl px-4 py-3 pb-7 flex justify-between items-center" data-testid="bottom-nav">
+                <div className="bg-[#0D0D14]/90 backdrop-blur-2xl border-t border-white/8 px-2 pt-2 pb-6 flex justify-around items-start" data-testid="bottom-nav">
                   {TABS.map(({ id, label, icon: Icon }) => {
                     const isActive = activeTab === id;
                     return (
                       <button
                         key={id}
                         onClick={() => setActiveTab(id)}
-                        className="flex flex-col items-center gap-1 flex-1 transition-all"
+                        className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all ${isActive ? 'bg-white/5' : ''}`}
                         data-testid={`nav-tab-${id}`}
                       >
                         <Icon 
-                          className={`w-5 h-5 transition-all ${isActive ? 'text-white' : 'text-white/30'}`} 
-                          strokeWidth={1.5} 
+                          className={`w-[18px] h-[18px] transition-all ${isActive ? 'text-[#0A84FF]' : 'text-white/25'}`} 
+                          strokeWidth={isActive ? 2 : 1.5} 
                         />
-                        <span className={`text-[10px] transition-all ${isActive ? 'text-white font-medium' : 'text-white/30'}`}>
+                        <span className={`text-[9px] leading-tight transition-all ${isActive ? 'text-[#0A84FF] font-semibold' : 'text-white/25'}`}>
                           {label}
                         </span>
-                        {isActive && (
-                          <div className="w-1 h-1 rounded-full bg-[#0A84FF] mt-0.5" style={{ boxShadow: '0 0 6px #0A84FF' }} />
-                        )}
                       </button>
                     );
                   })}

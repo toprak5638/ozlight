@@ -112,6 +112,17 @@ SP630E 5 kanallı RGBWW LED kontrol cihazı için gelişmiş web uygulaması. Me
 - [x] Tüm bileşenler yeni tema ile güncellendi
 - [x] %100 test geçişi (iteration 8)
 
+### Phase 9: Android APK + Web İyileştirme (April 17, 2026)
+- [x] Capacitor Android projesi oluşturuldu (android/ klasörü)
+- [x] BLE izinleri AndroidManifest.xml'e eklendi (BLUETOOTH_SCAN, BLUETOOTH_CONNECT)
+- [x] ANDROID_BUILD_GUIDE.md rehberi yazıldı
+- [x] Kompakt slider tasarımı (tek ekrana sığıyor)
+- [x] Glow efektli slider track'ler
+- [x] Bottom nav bar düzeltmesi (kısa etiketler, kompakt padding)
+- [x] Modlar sekmesi düzeltmesi (AKTİF badge + ince ayar slider'lar çalışıyor)
+- [x] Liste düzeni (bento grid yerine - daha stabil)
+- [x] %100 backend, %95 frontend test geçişi (iteration 9)
+
 ## Prioritized Backlog
 ### P0 (Critical)
 - SP630E gerçek Bluetooth UUID'lerini keşfetme (reverse engineering)

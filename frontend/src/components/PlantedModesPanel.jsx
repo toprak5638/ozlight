@@ -191,26 +191,25 @@ const PlantedModesPanel = ({ characteristic, device, setChannels }) => {
         <h3 className="text-xl font-medium mb-1" style={{ fontFamily: 'Outfit' }}>{category.name}</h3>
         <p className="text-xs text-white/30 mb-4">{category.description}</p>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-3">
           {category.modes.map((mode) => {
             const Icon = mode.icon;
             const isActive = activeMode === mode.id;
             const displayColor = isActive && customColor ? customColor : mode.color;
 
             return (
-              <div key={mode.id} className={isActive ? 'col-span-2' : ''}>
+              <div key={mode.id}>
                 <button
-                  onClick={() => applyMode(mode)}
+                  onClick={() => { setActiveMode(isActive ? null : mode.id); if (!isActive) applyMode(mode); }}
                   className={`w-full p-4 rounded-2xl border transition-all text-left relative overflow-hidden ${
                     isActive ? 'bg-white/10 border-white/20' : 'bg-white/5 border-white/5 hover:bg-white/10'
                   }`}
                   data-testid={`mode-${mode.id}`}
                 >
-                  {/* Glow effect */}
                   <div className="absolute top-0 right-0 w-16 h-16 rounded-full opacity-20 blur-xl"
                     style={{ backgroundColor: getPreviewGradient(displayColor) }} />
 
-                  <div className="flex items-start gap-3 relative z-10">
+                  <div className="flex items-center gap-3 relative z-10">
                     <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 border border-white/10"
                       style={{ backgroundColor: getPreviewGradient(displayColor) + '30' }}>
                       <Icon className="w-4 h-4 text-white/80" strokeWidth={1.5} />
@@ -218,26 +217,23 @@ const PlantedModesPanel = ({ characteristic, device, setChannels }) => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <h4 className="text-sm font-medium truncate">{mode.name}</h4>
-                        {isActive && <span className="px-1.5 py-0.5 bg-[#34C759]/20 text-[#34C759] rounded text-[8px] font-semibold">AKTİF</span>}
+                        {isActive && <span className="px-1.5 py-0.5 bg-[#34C759]/20 text-[#34C759] rounded text-[8px] font-semibold" data-testid={`mode-active-${mode.id}`}>AKTİF</span>}
                       </div>
-                      {isActive && <p className="text-[11px] text-white/30 mt-1">{mode.description}</p>}
+                      <p className="text-[10px] text-white/30 mt-0.5 truncate">{mode.description}</p>
                     </div>
                   </div>
-
-                  {/* Tags */}
-                  {isActive && (
-                    <div className="flex flex-wrap gap-1 mt-3">
-                      {mode.tags.map(tag => (
-                        <span key={tag} className="px-2 py-0.5 bg-white/5 rounded-full text-[9px] text-white/30">{tag}</span>
-                      ))}
-                    </div>
-                  )}
                 </button>
 
-                {/* Fine Tuning */}
                 {isActive && (
-                  <div className="mt-2 p-4 bg-white/5 rounded-2xl border border-white/5 space-y-3">
-                    <span className="text-[10px] text-white/30 uppercase tracking-wider font-semibold">Ayar</span>
+                  <div className="mt-1 p-4 bg-white/5 rounded-2xl border border-white/5 space-y-3" data-testid={`mode-tuning-${mode.id}`}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-white/30 uppercase tracking-wider font-semibold">Ayar</span>
+                      <div className="flex gap-1">
+                        {mode.tags.map(tag => (
+                          <span key={tag} className="px-2 py-0.5 bg-white/5 rounded-full text-[8px] text-white/20">{tag}</span>
+                        ))}
+                      </div>
+                    </div>
                     {[
                       { ch: 'r', l: 'R', c: '#FF3B30' },
                       { ch: 'g', l: 'G', c: '#34C759' },
@@ -252,7 +248,7 @@ const PlantedModesPanel = ({ characteristic, device, setChannels }) => {
                         <span className="text-xs font-mono w-7 text-right text-white/40">{displayColor[ch]}</span>
                       </div>
                     ))}
-                    <p className="text-[10px] text-white/20 font-mono mt-2">{mode.science}</p>
+                    <p className="text-[9px] text-white/15 font-mono">{mode.science}</p>
                   </div>
                 )}
               </div>

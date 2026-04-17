@@ -1,6 +1,6 @@
 {
-  "short_name": "LED Kontrol",
-  "name": "SP630E RGBWW LED Controller",
+  "short_name": "OzLight",
+  "name": "OzLight - Aquarium LED Controller",
   "description": "SP630E 5 kanallı RGBWW LED kontrol uygulaması - Bluetooth Low Energy",
   "icons": [
     {

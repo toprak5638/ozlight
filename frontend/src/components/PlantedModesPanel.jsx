@@ -131,43 +131,25 @@ const PlantedModesPanel = ({ characteristic, device, setChannels }) => {
 
   const applyMode = useCallback(async (mode) => {
     const color = customColor || mode.color;
-    
     if (setChannels) {
-      setChannels({
-        red: color.r, green: color.g, blue: color.b,
-        warmWhite: color.ww, coolWhite: color.cw
-      });
+      setChannels({ red: color.r, green: color.g, blue: color.b, warmWhite: color.ww, coolWhite: color.cw });
     }
-
     if (characteristic) {
       try {
         const result = SP630E_COMMANDS.setRGBWW(color.r, color.g, color.b, color.ww, color.cw);
-        for (const cmd of result.commands) {
-          await characteristic.writeValueWithoutResponse(cmd);
-          await new Promise(r => setTimeout(r, 30));
-        }
-      } catch (e) {
-        console.warn('BLE hatası:', e);
-      }
+        for (const cmd of result.commands) { await characteristic.writeValueWithoutResponse(cmd); await new Promise(r => setTimeout(r, 30)); }
+      } catch (e) { console.warn('BLE err:', e); }
     }
-
     setActiveMode(mode.id);
     setCustomColor(null);
-    toast.success(`${mode.name} modu aktif!`);
+    toast.success(`${mode.name} aktif`);
   }, [characteristic, setChannels, customColor]);
 
   const adjustModeColor = (mode, channel, value) => {
     const base = customColor || { ...mode.color };
     const updated = { ...base, [channel]: value[0] };
     setCustomColor(updated);
-    
-    // Anlık gönder
-    if (setChannels) {
-      setChannels({
-        red: updated.r, green: updated.g, blue: updated.b,
-        warmWhite: updated.ww, coolWhite: updated.cw
-      });
-    }
+    if (setChannels) { setChannels({ red: updated.r, green: updated.g, blue: updated.b, warmWhite: updated.ww, coolWhite: updated.cw }); }
   };
 
   const getPreviewGradient = (color) => {
@@ -181,8 +163,8 @@ const PlantedModesPanel = ({ characteristic, device, setChannels }) => {
   const category = AQUARIUM_MODES[activeCategory];
 
   return (
-    <div className="space-y-6">
-      {/* Kategori Seçimi */}
+    <div className="space-y-5">
+      {/* Category Selector */}
       <div className="grid grid-cols-2 gap-3">
         {Object.entries(AQUARIUM_MODES).map(([key, cat]) => {
           const Icon = cat.icon;
@@ -190,156 +172,92 @@ const PlantedModesPanel = ({ characteristic, device, setChannels }) => {
             <button
               key={key}
               onClick={() => setActiveCategory(key)}
-              className={`p-4 rounded-lg border font-bold text-sm transition-all ${
+              className={`p-4 rounded-2xl border transition-all text-center ${
                 activeCategory === key
-                  ? 'bg-[#00C781]/20 border-[#00C781] text-[#00C781]'
-                  : 'bg-white/5 border-white/10 text-white hover:bg-white/10'
+                  ? 'bg-white/10 border-white/20 text-white'
+                  : 'bg-white/5 border-white/5 text-white/40 hover:bg-white/10'
               }`}
               data-testid={`category-${key}`}
             >
-              <Icon className="w-5 h-5 mx-auto mb-2" />
-              {cat.name}
+              <Icon className="w-5 h-5 mx-auto mb-2" strokeWidth={1.5} />
+              <span className="text-xs font-medium">{cat.name}</span>
             </button>
           );
         })}
       </div>
 
-      {/* Mod Listesi */}
-      <div className="bg-[#121212] border border-white/10 rounded-lg p-6">
-        <h3 className="text-xl font-bold mb-2" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>
-          {category.name.toUpperCase()}
-        </h3>
-        <p className="text-xs text-[#A1A1AA] mb-4">{category.description}</p>
+      {/* Mode Cards - Bento Grid */}
+      <div>
+        <h3 className="text-xl font-medium mb-1" style={{ fontFamily: 'Outfit' }}>{category.name}</h3>
+        <p className="text-xs text-white/30 mb-4">{category.description}</p>
 
-        <div className="space-y-3">
+        <div className="grid grid-cols-2 gap-3">
           {category.modes.map((mode) => {
             const Icon = mode.icon;
             const isActive = activeMode === mode.id;
             const displayColor = isActive && customColor ? customColor : mode.color;
 
             return (
-              <div key={mode.id} className="space-y-0">
+              <div key={mode.id} className={isActive ? 'col-span-2' : ''}>
                 <button
                   onClick={() => applyMode(mode)}
-                  className={`w-full p-4 rounded-lg border transition-all text-left ${
-                    isActive
-                      ? 'bg-white/10 border-[#00C781]'
-                      : 'bg-white/5 border-white/10 hover:bg-white/10'
+                  className={`w-full p-4 rounded-2xl border transition-all text-left relative overflow-hidden ${
+                    isActive ? 'bg-white/10 border-white/20' : 'bg-white/5 border-white/5 hover:bg-white/10'
                   }`}
                   data-testid={`mode-${mode.id}`}
                 >
-                  <div className="flex items-start gap-3">
-                    {/* Renk Önizleme */}
-                    <div
-                      className="w-12 h-12 rounded-lg border border-white/20 flex-shrink-0 flex items-center justify-center"
-                      style={{ 
-                        backgroundColor: getPreviewGradient(displayColor),
-                        boxShadow: isActive ? `0 0 12px ${getPreviewGradient(displayColor)}` : 'none'
-                      }}
-                    >
-                      <Icon className="w-5 h-5 text-white drop-shadow-lg" />
-                    </div>
+                  {/* Glow effect */}
+                  <div className="absolute top-0 right-0 w-16 h-16 rounded-full opacity-20 blur-xl"
+                    style={{ backgroundColor: getPreviewGradient(displayColor) }} />
 
+                  <div className="flex items-start gap-3 relative z-10">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 border border-white/10"
+                      style={{ backgroundColor: getPreviewGradient(displayColor) + '30' }}>
+                      <Icon className="w-4 h-4 text-white/80" strokeWidth={1.5} />
+                    </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <h4 className="font-bold text-sm">{mode.name}</h4>
-                        {isActive && (
-                          <span className="px-2 py-0.5 bg-[#00C781]/20 text-[#00C781] rounded text-[9px] font-bold">AKTİF</span>
-                        )}
+                        <h4 className="text-sm font-medium truncate">{mode.name}</h4>
+                        {isActive && <span className="px-1.5 py-0.5 bg-[#34C759]/20 text-[#34C759] rounded text-[8px] font-semibold">AKTİF</span>}
                       </div>
-                      <p className="text-xs text-[#A1A1AA] mt-1 line-clamp-2">{mode.description}</p>
-                      
-                      {/* Etiketler */}
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {mode.tags.map(tag => (
-                          <span key={tag} className="px-2 py-0.5 bg-white/5 rounded text-[9px] text-[#52525B]">
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-
-                      {/* Bilimsel not */}
-                      <p className="text-[10px] text-[#52525B] mt-1 font-mono">{mode.science}</p>
+                      {isActive && <p className="text-[11px] text-white/30 mt-1">{mode.description}</p>}
                     </div>
                   </div>
 
-                  {/* Kanal değerleri */}
-                  <div className="flex gap-2 mt-3 justify-center">
-                    {[
-                      { k: 'r', c: '#FF3B30', l: 'K' },
-                      { k: 'g', c: '#34C759', l: 'Y' },
-                      { k: 'b', c: '#007AFF', l: 'M' },
-                      { k: 'ww', c: '#FFD60A', l: 'SB' },
-                      { k: 'cw', c: '#E5E5EA', l: 'SoB' },
-                    ].map(({ k, c, l }) => (
-                      <div key={k} className="flex flex-col items-center">
-                        <span className="text-[9px] font-bold" style={{ color: c }}>{l}</span>
-                        <span className="text-[10px] font-mono">{displayColor[k]}%</span>
-                      </div>
-                    ))}
-                  </div>
+                  {/* Tags */}
+                  {isActive && (
+                    <div className="flex flex-wrap gap-1 mt-3">
+                      {mode.tags.map(tag => (
+                        <span key={tag} className="px-2 py-0.5 bg-white/5 rounded-full text-[9px] text-white/30">{tag}</span>
+                      ))}
+                    </div>
+                  )}
                 </button>
 
-                {/* Aktif mod için ince ayar */}
+                {/* Fine Tuning */}
                 {isActive && (
-                  <div className="bg-white/5 rounded-b-lg p-4 space-y-3 border border-t-0 border-white/10">
-                    <p className="text-xs font-bold text-[#A1A1AA] uppercase tracking-wider">İnce Ayar</p>
+                  <div className="mt-2 p-4 bg-white/5 rounded-2xl border border-white/5 space-y-3">
+                    <span className="text-[10px] text-white/30 uppercase tracking-wider font-semibold">Ayar</span>
                     {[
-                      { ch: 'r', label: 'Kırmızı', color: '#FF3B30' },
-                      { ch: 'g', label: 'Yeşil', color: '#34C759' },
-                      { ch: 'b', label: 'Mavi', color: '#007AFF' },
-                      { ch: 'ww', label: 'Sıcak B.', color: '#FFD60A' },
-                      { ch: 'cw', label: 'Soğuk B.', color: '#E5E5EA' },
-                    ].map(({ ch, label, color }) => (
-                      <div key={ch} className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold w-12 truncate" style={{ color }}>{label}</span>
-                        <Slider
-                          value={[displayColor[ch]]}
-                          onValueChange={(v) => adjustModeColor(mode, ch, v)}
-                          max={100} step={1} trackColor={color}
-                          className="flex-1"
-                        />
-                        <span className="text-xs font-mono w-8 text-right">{displayColor[ch]}</span>
+                      { ch: 'r', l: 'R', c: '#FF3B30' },
+                      { ch: 'g', l: 'G', c: '#34C759' },
+                      { ch: 'b', l: 'B', c: '#0A84FF' },
+                      { ch: 'ww', l: 'WW', c: '#FFD60A' },
+                      { ch: 'cw', l: 'CW', c: '#5AC8FA' },
+                    ].map(({ ch, l, c }) => (
+                      <div key={ch} className="flex items-center gap-3">
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: c }} />
+                        <Slider value={[displayColor[ch]]} onValueChange={(v) => adjustModeColor(mode, ch, v)}
+                          max={100} step={1} trackColor={c} className="flex-1" />
+                        <span className="text-xs font-mono w-7 text-right text-white/40">{displayColor[ch]}</span>
                       </div>
                     ))}
+                    <p className="text-[10px] text-white/20 font-mono mt-2">{mode.science}</p>
                   </div>
                 )}
               </div>
             );
           })}
-        </div>
-      </div>
-
-      {/* Bilgi Kartı */}
-      <div className="bg-[#121212] border border-white/10 rounded-lg p-6">
-        <h3 className="text-xl font-bold mb-3" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>
-          BİLGİ
-        </h3>
-        <div className="space-y-3 text-xs text-[#A1A1AA]">
-          <div className="flex gap-2">
-            <span className="text-[#FF3B30] font-bold min-w-[60px]">Kırmızı:</span>
-            <span>660nm - Fotosentez ana dalga boyu. Yaprak büyümesi, çiçeklenme.</span>
-          </div>
-          <div className="flex gap-2">
-            <span className="text-[#007AFF] font-bold min-w-[60px]">Mavi:</span>
-            <span>450nm - Kompakt büyüme, klorofil üretimi. Fazlası yosun riski!</span>
-          </div>
-          <div className="flex gap-2">
-            <span className="text-[#34C759] font-bold min-w-[60px]">Yeşil:</span>
-            <span>500-570nm - Kanopi altına nüfuz. Görsel denge.</span>
-          </div>
-          <div className="flex gap-2">
-            <span className="text-[#FFD60A] font-bold min-w-[60px]">Sıcak B:</span>
-            <span>3000K - Kırmızı spektrumu güçlendirir, doğal sıcaklık.</span>
-          </div>
-          <div className="flex gap-2">
-            <span className="text-[#E5E5EA] font-bold min-w-[60px]">Soğuk B:</span>
-            <span>6500K - Gün ışığı benzeri. Genel fotosentez spektrumu.</span>
-          </div>
-          <div className="mt-3 p-3 bg-[#FFD60A]/10 border border-[#FFD60A]/20 rounded-lg">
-            <p className="text-[#FFD60A] font-bold mb-1">Hightech İpucu</p>
-            <p>CO2 enjeksiyonlu tanklarda 7-8 saat ışık süresi ideal. Işığı %50'den başlayıp haftada %5 artırın. Yosun görürseniz mavi kanalı azaltın.</p>
-          </div>
         </div>
       </div>
     </div>

@@ -183,6 +183,74 @@ class LEDControllerAPITester:
             200
         )
 
+    def test_register_device(self):
+        """Test registering a BLE device"""
+        device_data = {
+            "device_id": f"test-device-{datetime.now().strftime('%H%M%S')}",
+            "device_name": "Test SP630E",
+            "device_type": "sp630e",
+            "service_uuid": "0000ffe0-0000-1000-8000-00805f9b34fb",
+            "characteristic_uuid": "0000ffe1-0000-1000-8000-00805f9b34fb",
+            "is_connected": True
+        }
+        
+        success, response = self.run_test(
+            "Register Device",
+            "POST",
+            "devices/register",
+            200,
+            data=device_data
+        )
+        
+        if success and 'device_id' in response:
+            self.created_device_id = response['device_id']
+            print(f"   Created device ID: {self.created_device_id}")
+        
+        return success
+
+    def test_list_devices(self):
+        """Test listing devices"""
+        return self.run_test("List Devices", "GET", "devices", 200)
+
+    def test_send_command(self):
+        """Test sending color command to device"""
+        if not hasattr(self, 'created_device_id') or not self.created_device_id:
+            print("❌ No device ID available for command test")
+            return False
+            
+        command_data = {
+            "device_id": self.created_device_id,
+            "color": {
+                "red": 100,
+                "green": 50,
+                "blue": 25,
+                "warm_white": 75,
+                "cool_white": 30
+            }
+        }
+        
+        return self.run_test(
+            "Send Command",
+            "POST",
+            "commands/send",
+            200,
+            data=command_data
+        )
+
+    def test_update_device_connection(self):
+        """Test updating device connection status"""
+        if not hasattr(self, 'created_device_id') or not self.created_device_id:
+            print("❌ No device ID available for connection test")
+            return False
+            
+        return self.run_test(
+            "Update Device Connection",
+            "PUT",
+            f"devices/{self.created_device_id}/connection",
+            200,
+            params={"is_connected": False}
+        )
+
 def main():
     print("🚀 Starting LED Controller API Tests...")
     print("=" * 50)

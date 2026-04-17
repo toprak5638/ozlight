@@ -100,6 +100,18 @@ SP630E 5 kanallı RGBWW LED kontrol cihazı için gelişmiş web uygulaması. Me
 - [x] Ayarlar'da "SON DURUM" göstergesi (K/Y/M/SB/SoB yüzdeleri)
 - [x] %100 test geçişi (iteration 7)
 
+### Phase 8: OzLight Rebrand + Premium Tema (April 16, 2026)
+- [x] Uygulama adı "OzLight" olarak değiştirildi
+- [x] Premium Jewel & Luxury dark tema (#05050A, glassmorphism, glow efektleri)
+- [x] Outfit + IBM Plex Sans fontları
+- [x] Arka plan akvaryum görseli (opacity %7)
+- [x] Bottom navigation bar (glassmorphism, aktif tab glow dot)
+- [x] Efekt/Animasyon sekmesi kaldırıldı
+- [x] Modlar sekmesi geri eklendi (11 bilimsel mod, bento grid düzeni)
+- [x] 5 temiz tab: Kontrol, Modlar, Akvaryum, Zamanlayıcı, Ayarlar
+- [x] Tüm bileşenler yeni tema ile güncellendi
+- [x] %100 test geçişi (iteration 8)
+
 ## Prioritized Backlog
 ### P0 (Critical)
 - SP630E gerçek Bluetooth UUID'lerini keşfetme (reverse engineering)

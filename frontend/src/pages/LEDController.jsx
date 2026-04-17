@@ -1,27 +1,33 @@
 import React, { useState, useEffect } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { SlidersHorizontal, Clock, Zap, Settings, Fish } from 'lucide-react';
+import { SlidersHorizontal, LayoutGrid, Sun, Timer, Settings } from 'lucide-react';
 import { Toaster } from '@/components/ui/sonner';
 import { toast } from 'sonner';
 import ConnectionPanel from '../components/ConnectionPanel';
 import ControlPanel from '../components/ControlPanel';
 import SchedulePanel from '../components/SchedulePanel';
-import AnimationPanel from '../components/AnimationPanel';
 import AquariumPanel from '../components/AquariumPanel';
+import PlantedModesPanel from '../components/PlantedModesPanel';
 import { SP630E_COMMANDS } from '../lib/sp630e-protocol';
 
 const STORAGE_KEY = 'sp630e_last_state';
+const BG_IMAGE = 'https://images.unsplash.com/photo-1721106519595-5a0026848dcb?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1OTN8MHwxfHNlYXJjaHwyfHxhcXVhcml1bSUyMHBsYW50JTIwZGFyayUyMGJhY2tncm91bmR8ZW58MHx8fHwxNzc2Mjk4MzA1fDA&ixlib=rb-4.1.0&q=85';
+
+const TABS = [
+  { id: 'control', label: 'Kontrol', icon: SlidersHorizontal },
+  { id: 'modes', label: 'Modlar', icon: LayoutGrid },
+  { id: 'aquarium', label: 'Akvaryum', icon: Sun },
+  { id: 'schedule', label: 'Zamanlayıcı', icon: Timer },
+  { id: 'settings', label: 'Ayarlar', icon: Settings },
+];
 
 const LEDController = () => {
   const [selectedDevice, setSelectedDevice] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
   const [characteristic, setCharacteristic] = useState(null);
+  const [activeTab, setActiveTab] = useState('control');
   const [channels, setChannels] = useState(() => {
-    // localStorage'dan son durumu yükle
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try { return JSON.parse(saved); } catch {}
-    }
+    if (saved) { try { return JSON.parse(saved); } catch {} }
     return { red: 0, green: 0, blue: 0, warmWhite: 0, coolWhite: 0 };
   });
 
@@ -29,55 +35,42 @@ const LEDController = () => {
     if (!navigator.bluetooth) {
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
       if (isIOS) {
-        toast.error('iOS Safari Web Bluetooth desteklemiyor. Bluefy tarayıcısını App Store\'dan indirin!', { duration: 8000 });
-      } else {
-        toast.error('Web Bluetooth API bu tarayıcıda desteklenmiyor. Chrome veya Edge kullanın.');
+        toast.error('iOS Safari Web Bluetooth desteklemiyor. Bluefy indirin!', { duration: 8000 });
       }
     }
   }, []);
 
-  // Kanal değiştiğinde localStorage'a kaydet
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(channels));
   }, [channels]);
 
-  // Bağlandığında son durumu cihaza gönder
   const restoreLastState = async (char) => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (!saved || !char) return;
-
     try {
       const ch = JSON.parse(saved);
       const hasValues = ch.red > 0 || ch.green > 0 || ch.blue > 0 || ch.warmWhite > 0 || ch.coolWhite > 0;
-      
       if (hasValues) {
-        // Önce aç
         await char.writeValueWithoutResponse(SP630E_COMMANDS.powerOn());
         await new Promise(r => setTimeout(r, 100));
-
-        // Son durumu gönder
         const result = SP630E_COMMANDS.setRGBWW(ch.red, ch.green, ch.blue, ch.warmWhite, ch.coolWhite);
         for (const cmd of result.commands) {
           await char.writeValueWithoutResponse(cmd);
           await new Promise(r => setTimeout(r, 50));
         }
-        toast.success('Son durum geri yüklendi!');
+        toast.success('Son durum geri yüklendi');
       }
-    } catch (e) {
-      console.warn('Durum geri yükleme hatası:', e);
-    }
+    } catch (e) { console.warn('Restore error:', e); }
   };
 
   const handleConnect = (device, char) => {
     setSelectedDevice(device);
     setCharacteristic(char);
     setIsConnected(true);
-    // Bağlanınca son durumu cihaza gönder
     restoreLastState(char);
   };
 
   const handleDisconnect = () => {
-    // Kapanmadan önce mevcut durumu kaydet (zaten useEffect ile kaydediliyor)
     setSelectedDevice(null);
     setCharacteristic(null);
     setIsConnected(false);
@@ -86,180 +79,151 @@ const LEDController = () => {
   const enterDemoMode = () => {
     setSelectedDevice({ id: 'demo-device', name: 'SP630E Demo' });
     setIsConnected(true);
-    toast.success('Demo modu aktif! Bluetooth olmadan test edebilirsiniz.');
+    toast.success('Demo modu aktif');
+  };
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'control':
+        return <ControlPanel channels={channels} setChannels={setChannels} characteristic={characteristic} device={selectedDevice} />;
+      case 'modes':
+        return <PlantedModesPanel characteristic={characteristic} device={selectedDevice} setChannels={setChannels} />;
+      case 'aquarium':
+        return <AquariumPanel characteristic={characteristic} device={selectedDevice} setChannels={setChannels} />;
+      case 'schedule':
+        return <SchedulePanel device={selectedDevice} characteristic={characteristic} />;
+      case 'settings':
+        return (
+          <div className="space-y-5">
+            <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
+              <h3 className="text-xl font-medium mb-4" style={{ fontFamily: 'Outfit' }}>Cihaz</h3>
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between"><span className="text-white/50">Ad</span><span className="font-medium" data-testid="device-name">{selectedDevice?.name || 'SP630E'}</span></div>
+                <div className="flex justify-between"><span className="text-white/50">ID</span><span className="text-xs font-mono text-white/30" data-testid="device-id">{selectedDevice?.id || '-'}</span></div>
+                <div className="flex justify-between"><span className="text-white/50">Tip</span><span>5CH PWM RGBCCT</span></div>
+                <div className="flex justify-between"><span className="text-white/50">Bağlantı</span><span className="text-[#34C759]">BLE</span></div>
+              </div>
+            </div>
+
+            <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
+              <h3 className="text-xl font-medium mb-4" style={{ fontFamily: 'Outfit' }}>Son Durum</h3>
+              <div className="flex gap-2 justify-between">
+                {[
+                  { k: 'red', c: '#FF3B30', l: 'R' },
+                  { k: 'green', c: '#34C759', l: 'G' },
+                  { k: 'blue', c: '#0A84FF', l: 'B' },
+                  { k: 'warmWhite', c: '#FFD60A', l: 'WW' },
+                  { k: 'coolWhite', c: '#5AC8FA', l: 'CW' },
+                ].map(({ k, c, l }) => (
+                  <div key={k} className="flex flex-col items-center bg-white/5 rounded-xl p-3 flex-1">
+                    <div className="w-3 h-3 rounded-full mb-2" style={{ backgroundColor: c, boxShadow: `0 0 8px ${c}50` }} />
+                    <span className="text-lg font-light" style={{ fontFamily: 'IBM Plex Sans' }} data-testid={`saved-${k}`}>{channels[k]}</span>
+                    <span className="text-[9px] text-white/30 mt-1">{l}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
+              <h3 className="text-xl font-medium mb-4" style={{ fontFamily: 'Outfit' }}>Protokol</h3>
+              <div className="space-y-2 text-xs font-mono text-white/40">
+                <p>Service: <span className="text-[#0A84FF]">0000ffe0-...-00805f9b34fb</span></p>
+                <p>Char: <span className="text-[#0A84FF]">0000ffe1-...-00805f9b34fb</span></p>
+                <p>CMD: <span className="text-[#34C759]">0x53 [CMD] 0x00 0x01 0x00 [LEN] [DATA]</span></p>
+              </div>
+            </div>
+
+            <button
+              onClick={handleDisconnect}
+              className="w-full py-4 bg-[#FF3B30]/10 text-[#FF3B30] rounded-2xl font-medium hover:bg-[#FF3B30]/20 transition-colors border border-[#FF3B30]/20"
+              data-testid="disconnect-button"
+            >
+              Bağlantıyı Kes
+            </button>
+          </div>
+        );
+      default:
+        return null;
+    }
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white">
+    <div className="min-h-screen bg-[#05050A] text-white relative">
       <Toaster position="top-center" richColors />
-      
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-black/60 backdrop-blur-xl border-b border-white/10">
-        <div className="max-w-md mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-black tracking-tight" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>
-                LED KONTROL
-              </h1>
-              <p className="text-xs text-[#A1A1AA] mt-1">SP630E RGBWW Controller</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${
-                isConnected ? 'bg-[#00C781]' : 'bg-[#FF3B30]'
-              } animate-pulse`}></div>
-              <span className="text-xs font-bold uppercase tracking-[0.2em]">
-                {isConnected ? 'BAĞLI' : 'BAĞLI DEĞİL'}
-              </span>
-            </div>
-          </div>
-        </div>
-      </header>
 
-      {/* Main Content */}
-      <div className="max-w-md mx-auto px-6 py-6">
+      {/* Background Image */}
+      <div 
+        className="fixed inset-0 opacity-[0.07] bg-cover bg-center pointer-events-none"
+        style={{ backgroundImage: `url(${BG_IMAGE})` }}
+      />
+      <div className="fixed inset-0 bg-gradient-to-b from-[#05050A] via-transparent to-[#05050A] pointer-events-none" />
+
+      {/* Content */}
+      <div className="relative z-10 max-w-md mx-auto min-h-screen flex flex-col">
         {!isConnected ? (
-          <ConnectionPanel onConnect={handleConnect} onDemoMode={enterDemoMode} />
+          <div className="flex-1 px-6 py-8">
+            {/* OzLight Logo */}
+            <div className="text-center mb-8">
+              <h1 className="text-5xl font-light tracking-tighter" style={{ fontFamily: 'Outfit' }} data-testid="app-title">
+                Oz<span className="font-semibold">Light</span>
+              </h1>
+              <p className="text-xs text-white/30 mt-2 tracking-[0.3em] uppercase">Aquarium LED Controller</p>
+            </div>
+            <ConnectionPanel onConnect={handleConnect} onDemoMode={enterDemoMode} />
+          </div>
         ) : (
-          <Tabs defaultValue="control" className="w-full">
-            <TabsList className="grid w-full grid-cols-5 bg-[#121212] border border-white/10 p-1 rounded-lg mb-6" data-testid="main-tabs">
-              <TabsTrigger 
-                value="control" 
-                className="data-[state=active]:bg-white/10 text-xs"
-                data-testid="control-tab"
-              >
-                <SlidersHorizontal className="w-4 h-4" />
-              </TabsTrigger>
-              <TabsTrigger 
-                value="aquarium" 
-                className="data-[state=active]:bg-white/10 text-xs"
-                data-testid="aquarium-tab"
-              >
-                <Fish className="w-4 h-4" />
-              </TabsTrigger>
-              <TabsTrigger 
-                value="schedule" 
-                className="data-[state=active]:bg-white/10 text-xs"
-                data-testid="schedule-tab"
-              >
-                <Clock className="w-4 h-4" />
-              </TabsTrigger>
-              <TabsTrigger 
-                value="animation" 
-                className="data-[state=active]:bg-white/10 text-xs"
-                data-testid="animation-tab"
-              >
-                <Zap className="w-4 h-4" />
-              </TabsTrigger>
-              <TabsTrigger 
-                value="settings" 
-                className="data-[state=active]:bg-white/10 text-xs"
-                data-testid="settings-tab"
-              >
-                <Settings className="w-4 h-4" />
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="control" data-testid="control-content">
-              <ControlPanel 
-                channels={channels}
-                setChannels={setChannels}
-                characteristic={characteristic}
-                device={selectedDevice}
-              />
-            </TabsContent>
-
-            <TabsContent value="aquarium" data-testid="aquarium-content">
-              <AquariumPanel 
-                characteristic={characteristic}
-                device={selectedDevice}
-                setChannels={setChannels}
-              />
-            </TabsContent>
-
-            <TabsContent value="schedule" data-testid="schedule-content">
-              <SchedulePanel device={selectedDevice} characteristic={characteristic} />
-            </TabsContent>
-
-            <TabsContent value="animation" data-testid="animation-content">
-              <AnimationPanel 
-                characteristic={characteristic}
-                device={selectedDevice}
-              />
-            </TabsContent>
-
-            <TabsContent value="settings" data-testid="settings-content">
-              <div className="space-y-6">
-                <div className="bg-[#121212] border border-white/10 rounded-lg p-6">
-                  <h3 className="text-xl font-bold mb-4" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>CİHAZ BİLGİSİ</h3>
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-sm text-[#A1A1AA]">Cihaz Adı</span>
-                      <span className="font-semibold" data-testid="device-name">{selectedDevice?.name || 'SP630E Demo'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-[#A1A1AA]">Cihaz ID</span>
-                      <span className="text-xs font-mono text-[#52525B]" data-testid="device-id">{selectedDevice?.id || 'demo-device'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-[#A1A1AA]">Tip</span>
-                      <span className="text-sm">5CH PWM RGBCCT</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-[#A1A1AA]">Bağlantı</span>
-                      <span className="text-sm text-[#00C781]">Bluetooth LE</span>
-                    </div>
-                  </div>
+          <>
+            {/* Header */}
+            <header className="px-6 pt-6 pb-2">
+              <div className="flex items-center justify-between">
+                <h1 className="text-2xl font-light tracking-tighter" style={{ fontFamily: 'Outfit' }}>
+                  Oz<span className="font-semibold">Light</span>
+                </h1>
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-[#34C759]' : 'bg-[#FF3B30]'}`} 
+                    style={{ boxShadow: isConnected ? '0 0 8px #34C75980' : '0 0 8px #FF3B3080' }} />
+                  <span className="text-[10px] text-white/40 uppercase tracking-wider">
+                    {isConnected ? 'Bağlı' : 'Bağlı Değil'}
+                  </span>
                 </div>
-
-                {/* Son Kaydedilen Durum */}
-                <div className="bg-[#121212] border border-white/10 rounded-lg p-6">
-                  <h3 className="text-xl font-bold mb-4" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>SON DURUM</h3>
-                  <p className="text-xs text-[#A1A1AA] mb-3">Cihaz açıldığında bu değerlerle başlar</p>
-                  <div className="flex gap-3 justify-center">
-                    {[
-                      { k: 'red', c: '#FF3B30', l: 'K' },
-                      { k: 'green', c: '#34C759', l: 'Y' },
-                      { k: 'blue', c: '#007AFF', l: 'M' },
-                      { k: 'warmWhite', c: '#FFD60A', l: 'SB' },
-                      { k: 'coolWhite', c: '#E5E5EA', l: 'SoB' },
-                    ].map(({ k, c, l }) => (
-                      <div key={k} className="flex flex-col items-center bg-white/5 rounded-lg p-2 min-w-[48px]">
-                        <span className="text-[10px] font-bold" style={{ color: c }}>{l}</span>
-                        <span className="text-lg font-mono font-bold" data-testid={`saved-${k}`}>{channels[k]}</span>
-                        <span className="text-[9px] text-[#52525B]">%</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="bg-[#121212] border border-white/10 rounded-lg p-6">
-                  <h3 className="text-xl font-bold mb-4" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>BLE PROTOKOL</h3>
-                  <div className="space-y-2 text-xs font-mono">
-                    <div className="bg-white/5 p-2 rounded">
-                      <span className="text-[#A1A1AA]">Service:</span>{' '}
-                      <span className="text-[#007AFF]">0000ffe0-0000-1000-8000-00805f9b34fb</span>
-                    </div>
-                    <div className="bg-white/5 p-2 rounded">
-                      <span className="text-[#A1A1AA]">Char:</span>{' '}
-                      <span className="text-[#007AFF]">0000ffe1-0000-1000-8000-00805f9b34fb</span>
-                    </div>
-                    <div className="bg-white/5 p-2 rounded">
-                      <span className="text-[#A1A1AA]">Format:</span>{' '}
-                      <span className="text-[#34C759]">0x53 [CMD] 0x00 0x01 0x00 [LEN] [DATA]</span>
-                    </div>
-                  </div>
-                </div>
-
-                <button
-                  onClick={handleDisconnect}
-                  className="w-full px-4 py-3 bg-[#FF3B30] text-white rounded-lg font-bold uppercase tracking-wider hover:translate-y-[-1px] transition-transform border border-white/10"
-                  data-testid="disconnect-button"
-                >
-                  Bağlantıyı Kes
-                </button>
               </div>
-            </TabsContent>
-          </Tabs>
+            </header>
+
+            {/* Tab Content */}
+            <main className="flex-1 px-6 py-4 pb-28 overflow-y-auto">
+              {renderContent()}
+            </main>
+
+            {/* Bottom Nav - Glassmorphism */}
+            <nav className="fixed bottom-0 left-0 right-0 z-50">
+              <div className="max-w-md mx-auto">
+                <div className="bg-[#12121C]/80 backdrop-blur-2xl border-t border-white/10 rounded-t-3xl px-4 py-3 pb-7 flex justify-between items-center" data-testid="bottom-nav">
+                  {TABS.map(({ id, label, icon: Icon }) => {
+                    const isActive = activeTab === id;
+                    return (
+                      <button
+                        key={id}
+                        onClick={() => setActiveTab(id)}
+                        className="flex flex-col items-center gap-1 flex-1 transition-all"
+                        data-testid={`nav-tab-${id}`}
+                      >
+                        <Icon 
+                          className={`w-5 h-5 transition-all ${isActive ? 'text-white' : 'text-white/30'}`} 
+                          strokeWidth={1.5} 
+                        />
+                        <span className={`text-[10px] transition-all ${isActive ? 'text-white font-medium' : 'text-white/30'}`}>
+                          {label}
+                        </span>
+                        {isActive && (
+                          <div className="w-1 h-1 rounded-full bg-[#0A84FF] mt-0.5" style={{ boxShadow: '0 0 6px #0A84FF' }} />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </nav>
+          </>
         )}
       </div>
     </div>

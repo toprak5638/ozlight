@@ -1,6 +1,5 @@
 import React, { useRef, useCallback } from 'react';
 import { Slider } from '@/components/ui/slider';
-import { Button } from '@/components/ui/button';
 import { Power, PowerOff } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
@@ -9,55 +8,38 @@ import { SP630E_COMMANDS } from '../lib/sp630e-protocol';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-const CHANNEL_CONFIG = [
-  { key: 'red', label: 'KIRMIZI', color: '#FF3B30' },
-  { key: 'green', label: 'YEŞİL', color: '#34C759' },
-  { key: 'blue', label: 'MAVİ', color: '#007AFF' },
-  { key: 'warmWhite', label: 'SICAK BEYAZ', color: '#FFD60A' },
-  { key: 'coolWhite', label: 'SOĞUK BEYAZ', color: '#E5E5EA' }
+const CHANNELS = [
+  { key: 'red', label: 'Red', color: '#FF3B30', glow: '#FF3B3040' },
+  { key: 'green', label: 'Green', color: '#34C759', glow: '#34C75940' },
+  { key: 'blue', label: 'Blue', color: '#0A84FF', glow: '#0A84FF40' },
+  { key: 'warmWhite', label: 'Warm', color: '#FFD60A', glow: '#FFD60A40' },
+  { key: 'coolWhite', label: 'Cool', color: '#5AC8FA', glow: '#5AC8FA40' }
 ];
 
 const ControlPanel = ({ channels, setChannels, characteristic, device }) => {
   const sendTimeoutRef = useRef(null);
-  const lastSentRef = useRef(null);
 
-  // Debounced BLE komut gönderimi (150ms)
   const sendBLECommand = useCallback((newChannels) => {
-    if (sendTimeoutRef.current) {
-      clearTimeout(sendTimeoutRef.current);
-    }
-
+    if (sendTimeoutRef.current) clearTimeout(sendTimeoutRef.current);
     sendTimeoutRef.current = setTimeout(async () => {
       const ch = newChannels;
-      
       if (characteristic) {
         try {
-          const result = SP630E_COMMANDS.setRGBWW(
-            ch.red, ch.green, ch.blue, ch.warmWhite, ch.coolWhite
-          );
+          const result = SP630E_COMMANDS.setRGBWW(ch.red, ch.green, ch.blue, ch.warmWhite, ch.coolWhite);
           for (const cmd of result.commands) {
             await characteristic.writeValueWithoutResponse(cmd);
-            await new Promise(resolve => setTimeout(resolve, 30));
+            await new Promise(r => setTimeout(r, 30));
           }
-        } catch (error) {
-          console.warn('BLE komut hatası:', error);
-        }
+        } catch (e) { console.warn('BLE err:', e); }
       }
-
-      // Backend log (sessiz)
       try {
         if (device) {
           await axios.post(`${API}/commands/send`, {
             device_id: device.id,
-            color: {
-              red: ch.red, green: ch.green, blue: ch.blue,
-              warm_white: ch.warmWhite, cool_white: ch.coolWhite
-            }
+            color: { red: ch.red, green: ch.green, blue: ch.blue, warm_white: ch.warmWhite, cool_white: ch.coolWhite }
           });
         }
-      } catch (e) { /* sessiz */ }
-
-      lastSentRef.current = ch;
+      } catch (e) { /* silent */ }
     }, 150);
   }, [characteristic, device]);
 
@@ -68,32 +50,22 @@ const ControlPanel = ({ channels, setChannels, characteristic, device }) => {
   };
 
   const powerOn = async () => {
-    const newChannels = { red: 100, green: 100, blue: 100, warmWhite: 100, coolWhite: 100 };
-    setChannels(newChannels);
+    const ch = { red: 100, green: 100, blue: 100, warmWhite: 100, coolWhite: 100 };
+    setChannels(ch);
     if (characteristic) {
       try {
         await characteristic.writeValueWithoutResponse(SP630E_COMMANDS.powerOn());
         await new Promise(r => setTimeout(r, 50));
         const result = SP630E_COMMANDS.setRGBWW(100, 100, 100, 100, 100);
-        for (const cmd of result.commands) {
-          await characteristic.writeValueWithoutResponse(cmd);
-          await new Promise(r => setTimeout(r, 30));
-        }
-      } catch (error) {
-        toast.error(`Hata: ${error.message}`);
-      }
+        for (const cmd of result.commands) { await characteristic.writeValueWithoutResponse(cmd); await new Promise(r => setTimeout(r, 30)); }
+      } catch (e) { toast.error(e.message); }
     }
   };
 
   const powerOff = async () => {
-    const newChannels = { red: 0, green: 0, blue: 0, warmWhite: 0, coolWhite: 0 };
-    setChannels(newChannels);
+    setChannels({ red: 0, green: 0, blue: 0, warmWhite: 0, coolWhite: 0 });
     if (characteristic) {
-      try {
-        await characteristic.writeValueWithoutResponse(SP630E_COMMANDS.powerOff());
-      } catch (error) {
-        toast.error(`Hata: ${error.message}`);
-      }
+      try { await characteristic.writeValueWithoutResponse(SP630E_COMMANDS.powerOff()); } catch (e) { toast.error(e.message); }
     }
   };
 
@@ -101,69 +73,63 @@ const ControlPanel = ({ channels, setChannels, characteristic, device }) => {
     const r = Math.round(channels.red * 2.55);
     const g = Math.round(channels.green * 2.55);
     const b = Math.round(channels.blue * 2.55);
-    const wwContrib = Math.round(channels.warmWhite * 0.8);
-    const cwContrib = Math.round(channels.coolWhite * 0.6);
-    const finalR = Math.min(255, r + wwContrib);
-    const finalG = Math.min(255, g + Math.round((wwContrib + cwContrib) * 0.7));
-    const finalB = Math.min(255, b + cwContrib);
-    return `rgb(${finalR}, ${finalG}, ${finalB})`;
+    const ww = Math.round(channels.warmWhite * 0.8);
+    const cw = Math.round(channels.coolWhite * 0.6);
+    return `rgb(${Math.min(255, r + ww)}, ${Math.min(255, g + Math.round((ww + cw) * 0.7))}, ${Math.min(255, b + cw)})`;
   };
 
-  const getGlowIntensity = () => {
-    const total = (channels.red + channels.green + channels.blue + channels.warmWhite + channels.coolWhite) / 5;
-    return Math.round(total * 0.6);
-  };
+  const glowSize = Math.round(((channels.red + channels.green + channels.blue + channels.warmWhite + channels.coolWhite) / 5) * 0.8);
 
   return (
-    <div className="space-y-6">
-      {/* Preview */}
-      <div 
-        className="h-28 rounded-lg flex items-center justify-center transition-all duration-200 border border-white/10"
+    <div className="space-y-5">
+      {/* Color Preview */}
+      <div
+        className="h-32 rounded-3xl flex items-center justify-center border border-white/5 transition-all duration-300 relative overflow-hidden"
         style={{
           backgroundColor: getPreviewColor(),
-          boxShadow: `0 0 ${getGlowIntensity()}px ${getPreviewColor()}, 0 0 ${getGlowIntensity() * 2}px ${getPreviewColor()}`
+          boxShadow: `0 0 ${glowSize}px ${getPreviewColor()}, 0 4px 30px ${getPreviewColor()}40`
         }}
         data-testid="color-preview"
       >
-        <span className="text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] text-sm" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-          ÖNİZLEME
+        <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
+        <span className="text-white/60 text-xs tracking-[0.3em] uppercase font-medium drop-shadow-lg" style={{ fontFamily: 'Outfit' }}>
+          Preview
         </span>
       </div>
 
-      {/* Quick Actions */}
+      {/* Power Buttons */}
       <div className="grid grid-cols-2 gap-3">
-        <Button
+        <button
           onClick={powerOn}
-          className="h-10 bg-white/5 hover:bg-white/10 text-white rounded-lg font-bold text-xs uppercase tracking-wider transition-all border border-white/10"
+          className="flex items-center justify-center gap-2 py-3 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/5 transition-all text-xs font-medium uppercase tracking-wider"
           data-testid="all-on-button"
         >
-          <Power className="w-4 h-4 mr-1" />
-          HEPSİ AÇ
-        </Button>
-        <Button
+          <Power className="w-4 h-4" strokeWidth={1.5} /> Aç
+        </button>
+        <button
           onClick={powerOff}
-          className="h-10 bg-white/5 hover:bg-white/10 text-white rounded-lg font-bold text-xs uppercase tracking-wider transition-all border border-white/10"
+          className="flex items-center justify-center gap-2 py-3 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/5 transition-all text-xs font-medium uppercase tracking-wider"
           data-testid="all-off-button"
         >
-          <PowerOff className="w-4 h-4 mr-1" />
-          HEPSİ KAPAT
-        </Button>
+          <PowerOff className="w-4 h-4" strokeWidth={1.5} /> Kapat
+        </button>
       </div>
 
-      {/* Channel Sliders - Anlık komut gönderir */}
-      <div className="bg-[#121212] border border-white/10 rounded-lg p-6 space-y-6">
-        {CHANNEL_CONFIG.map(({ key, label, color }) => (
+      {/* Channel Sliders */}
+      <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 space-y-7">
+        {CHANNELS.map(({ key, label, color, glow }) => (
           <div key={key}>
-            <div className="flex justify-between items-center mb-3">
-              <label className="text-xs font-bold uppercase tracking-[0.2em]" style={{ color }}>
-                {label}
-              </label>
-              <span 
-                className="text-2xl font-medium tracking-tight"
-                style={{ color, fontFamily: 'JetBrains Mono, monospace' }}
+            <div className="flex justify-between items-end mb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: color, boxShadow: `0 0 8px ${glow}` }} />
+                <span className="text-xs tracking-[0.2em] uppercase font-semibold text-white/50">{label}</span>
+              </div>
+              <span
+                className="text-3xl font-light tracking-tight"
+                style={{ color, fontFamily: 'IBM Plex Sans' }}
                 data-testid={`${key}-value`}
               >
-                {channels[key]}%
+                {channels[key]}
               </span>
             </div>
             <Slider

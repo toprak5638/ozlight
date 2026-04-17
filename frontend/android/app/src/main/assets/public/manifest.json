@@ -1,0 +1,20 @@
+{
+  "short_name": "OzLight",
+  "name": "OzLight - Aquarium LED Controller",
+  "description": "SP630E 5 kanallı RGBWW LED kontrol uygulaması - Bluetooth Low Energy",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='80' fill='%230A0A0A'/><circle cx='256' cy='200' r='80' fill='%23FF3B30' opacity='0.8'/><circle cx='220' cy='260' r='80' fill='%2334C759' opacity='0.7'/><circle cx='292' cy='260' r='80' fill='%23007AFF' opacity='0.7'/><rect x='156' y='360' width='200' height='20' rx='10' fill='%23FFD60A' opacity='0.9'/><rect x='156' y='400' width='200' height='20' rx='10' fill='%23E5E5EA' opacity='0.8'/></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#0A0A0A",
+  "background_color": "#0A0A0A",
+  "categories": ["utilities", "lifestyle"],
+  "lang": "tr"
+}
